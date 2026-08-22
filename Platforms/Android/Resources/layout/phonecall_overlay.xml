@@ -1,0 +1,174 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    android:padding="8dp">
+
+	<!-- ========================= -->
+	<!-- HEADER                    -->
+	<!-- ========================= -->
+
+	<LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp">
+
+		<!-- Số điện thoại -->
+		<TextView
+            android:id="@+id/lblPhone"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#007ACC"
+            android:gravity="center_vertical|start" />
+
+		<!-- Thời gian -->
+		<TextView
+            android:id="@+id/lblTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:gravity="center_vertical|end"
+            android:paddingStart="8dp" />
+
+	</LinearLayout>
+
+
+	<!-- ========================= -->
+	<!-- ĐƯỜNG KẺ HEADER            -->
+	<!-- ========================= -->
+
+	<View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDDDDD" />
+
+
+	<!-- ========================= -->
+	<!-- DETAIL - LISTVIEW          -->
+	<!-- ========================= -->
+
+	<ListView
+        android:id="@+id/lstInfo"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#FFFFFF"
+        android:divider="#DDDDDD"
+        android:dividerHeight="1dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:clipToPadding="false" />
+
+
+	<!-- ========================= -->
+	<!-- ĐƯỜNG KẺ FOOTER            -->
+	<!-- ========================= -->
+
+	<View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDDDDD" />
+
+
+	<!-- ========================= -->
+	<!-- FOOTER - 4 BUTTON          -->
+	<!-- ========================= -->
+
+	<LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingTop="6dp"
+        android:paddingBottom="2dp">
+
+		<!-- NGHE MÁY -->
+		<Button
+            android:id="@+id/btnAnswer"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="2dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="2dp"
+            android:text="Nghe&#10;máy"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#28A745" />
+
+		<!-- TỪ CHỐI -->
+		<Button
+            android:id="@+id/btnReject"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="2dp"
+            android:text="Từ&#10;chối"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#DC3545" />
+
+		<!-- CHIA SẺ -->
+		<Button
+            android:id="@+id/btnShare"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="2dp"
+            android:text="Chia&#10;sẻ"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#0078D4" />
+
+		<!-- THOÁT -->
+		<Button
+            android:id="@+id/btnClose"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="2dp"
+            android:text="Thoát"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#6C757D" />
+
+	</LinearLayout>
+
+</LinearLayout>

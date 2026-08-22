@@ -1,0 +1,1299 @@
+using System;
+using System.Data;
+using System.IO;
+using System.Net.Http;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Maui.Networking;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace YourNamespace
+{
+    public class ClsConnService
+    {
+        #region --- Fields & Properties ---
+
+        // =========================================================================
+        // [SỬA ĐỔI 1]: Chuyển mLastMessage sang AsyncLocal<string>
+        // TÁC DỤNG: Mỗi Task/Luồng Async sẽ có một bộ nhớ LastMessage riêng biệt.
+        // Khi 10 Task sự kiện POST ngầm chạy song song, thông báo lỗi của Task A 
+        // sẽ KHÔNG BAO GIỜ bị Task B ghi đè nữa.
+        // =========================================================================
+        private static readonly AsyncLocal<string> mLocalLastMessage = new AsyncLocal<string>();
+
+        public static string LastMessage
+        {
+            get => mLocalLastMessage.Value ?? "";
+            set => mLocalLastMessage.Value = value;
+        }
+
+        private string mRedirectCode = "";
+        private string mRedirectUserName = "";
+        private string mRedirectUserPass = "";
+        private string mRedirectUrlAvailable = "";
+        private string mRedirectUrlAvailable2 = "";
+
+        // Các biến Cấu hình Dùng Chung (Read-Only sau khi Login/Redirect)
+        private string mUrlTrueService = "";
+        private string mSecurityCode = "";
+        private string mUserName = "";
+        private string mUserPass = "";
+
+        private int mSoapTimeOut = 10;
+        private string mSoapUserAgent = "BI.Application";
+
+        // =========================================================================
+        // [ĐÃ GIỮ NGUYÊN - DÙNG CHUNG AN TOÀN]: Cờ volatile báo trạng thái chung của App
+        // =========================================================================
+        private volatile bool mNetError = false;
+        private volatile bool mServerError = false;
+
+        public bool NetError => mNetError;
+        public bool ServerError => mServerError;
+
+        public string UrlTrueService
+        {
+            get => mUrlTrueService;
+            set => mUrlTrueService = value;
+        }
+
+        public string SecurityCode
+        {
+            get => mSecurityCode;
+            set => mSecurityCode = value;
+        }
+
+        public string UserName
+        {
+            get => mUserName;
+            set => mUserName = value;
+        }
+
+        public string UserPass
+        {
+            get => mUserPass;
+            set => mUserPass = value;
+        }
+
+        // Semaphore khóa Task Reconnect ngầm chống chạy chồng chéo
+        private readonly SemaphoreSlim mReconnectLock = new SemaphoreSlim(1, 1);
+
+        #endregion
+
+        #region --- Constructors & Event Handlers ---
+
+        public ClsConnService()
+        {
+            InitConnectivityListener();
+        }
+
+        public ClsConnService(string code, string user, string pass, string url1, string url2)
+        {
+            mRedirectCode = code;
+            mRedirectUserName = user;
+            mRedirectUserPass = pass;
+            mRedirectUrlAvailable = url1;
+            mRedirectUrlAvailable2 = url2;
+
+            InitConnectivityListener();
+        }
+
+        private void InitConnectivityListener()
+        {
+            mNetError = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
+
+            Connectivity.Current.ConnectivityChanged -= OnConnectivityChanged;
+            Connectivity.Current.ConnectivityChanged += OnConnectivityChanged;
+        }
+
+        private void OnConnectivityChanged(object sender, ConnectivityChangedEventArgs e)
+        {
+            bool hasInternet = e.NetworkAccess == NetworkAccess.Internet;
+            mNetError = !hasInternet;
+
+            if (hasInternet)
+            {
+                _ = StartBackgroundReconnectTaskAsync();
+            }
+        }
+
+        #endregion
+
+        #region --- Reconnect Background Logic ---
+
+        private async Task StartBackgroundReconnectTaskAsync()
+        {
+            if (!await mReconnectLock.WaitAsync(0))
+            {
+                return;
+            }
+
+            try
+            {
+                if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+                {
+                    bool isReconnected = await MauiRedirectAsync();
+                    if (isReconnected)
+                    {
+                        mServerError = false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // [Ghi chú]: Do đã chuyển sang AsyncLocal nên gán LastMessage ở đây an toàn tuyệt đối
+                LastMessage = $"Background Reconnect Exception: {ex.Message}";
+                LogWriter.WriteLine(LastMessage);
+            }
+            finally
+            {
+                mReconnectLock.Release();
+            }
+        }
+
+        #endregion
+
+        #region --- Core Network Operations (SubmitMauiAsync) ---
+
+        /// <summary>
+        /// Hàm POST chính dùng cho cả Tuần tự (Login) và Ngầm (Sự kiện)
+        /// TẤT CẢ các biến trong hàm này (mUrl, client, response, result) đều là
+        /// biến CỤC BỘ (Stack Variable), hoàn toàn độc lập 100% giữa các Task.
+        /// </summary>
+        public async Task<string> SubmitMauiAsync(string mTrueUrlService, string jsonPost)
+        {
+            // Reset LastMessage riêng của Task/Luồng này
+            LastMessage = "";
+
+            if (string.IsNullOrEmpty(jsonPost))
+            {
+                LastMessage = "SubmitMaui: JSON POST rỗng";
+                return "";
+            }
+            if (string.IsNullOrEmpty(mTrueUrlService))
+            {
+                LastMessage = "SubmitMaui: URL rỗng";
+                return "";
+            }
+
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            {
+                mNetError = true;
+                LastMessage = "SubmitMaui: Mất kết nối Internet";
+                return "";
+            }
+
+            // [AN TOÀN ĐA LUỒNG]: mUrl là biến CỤC BỘ -> Không sợ bị đè biến URL
+            int nReaden = mTrueUrlService.IndexOf('?');
+            if (nReaden >= 0)
+            {
+                mTrueUrlService = mTrueUrlService.Substring(0, nReaden);
+            }
+            mTrueUrlService = mTrueUrlService.TrimEnd('/');
+            string mUrl = mTrueUrlService + "/SubmitMaui";
+
+            const int maxRetries = 2;
+            const int perRequestTimeoutSeconds = 2;
+
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    // [AN TOÀN ĐA LUỒNG]: Mỗi Task tạo 1 HttpClient Handler độc lập
+                    using (var handler = new HttpClientHandler())
+                    {
+                        handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
+                        handler.AllowAutoRedirect = true;
+                        handler.UseCookies = false;
+
+                        using (var client = new HttpClient(handler))
+                        {
+                            client.Timeout = TimeSpan.FromSeconds(perRequestTimeoutSeconds);
+                            string userAgent = !string.IsNullOrWhiteSpace(mSoapUserAgent) ? mSoapUserAgent : "BI.Application";
+                            client.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+
+                            using (var content = new StringContent(jsonPost, Encoding.UTF8, "application/json"))
+                            {
+                                using (var response = await client.PostAsync(mUrl, content))
+                                {
+                                    int statusCode = (int)response.StatusCode;
+
+                                    if (statusCode >= 500 && statusCode < 600)
+                                    {
+                                        mServerError = true;
+                                        _ = StartBackgroundReconnectTaskAsync();
+
+                                        LastMessage = $"SubmitMaui Server Error Status: {statusCode} {response.ReasonPhrase}";
+                                        if (attempt < maxRetries) continue;
+                                        return "";
+                                    }
+
+                                    if (!response.IsSuccessStatusCode)
+                                    {
+                                        string errorBody = "";
+                                        try { errorBody = await response.Content.ReadAsStringAsync(); } catch { }
+
+                                        LastMessage = $"SubmitMaui HTTP Error: {statusCode} {response.ReasonPhrase}";
+                                        if (!string.IsNullOrEmpty(errorBody))
+                                        {
+                                            LastMessage += " | Response=" + errorBody;
+                                        }
+                                        return "";
+                                    }
+
+                                    string result = await response.Content.ReadAsStringAsync();
+                                    if (string.IsNullOrEmpty(result))
+                                    {
+                                        LastMessage = "SubmitMaui: Server trả body rỗng";
+                                        return "";
+                                    }
+
+                                    mServerError = false;
+                                    LastMessage = "";
+                                    return result; // [AN TOÀN ĐA LUỒNG]: Trả về kết quả đúng của Task này
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (TaskCanceledException ex)
+                {
+                    LastMessage = $"SubmitMaui Attempt {attempt} Timeout (>{perRequestTimeoutSeconds}s): {ex.Message}";
+                    LogWriter.WriteLine(LastMessage);
+
+                    if (attempt == maxRetries)
+                    {
+                        mServerError = true;
+                        _ = StartBackgroundReconnectTaskAsync();
+                    }
+                }
+                catch (HttpRequestException ex)
+                {
+                    LastMessage = $"SubmitMaui Attempt {attempt} HttpRequestException: {ex.Message}";
+                    LogWriter.WriteLine(LastMessage);
+
+                    mServerError = true;
+                    _ = StartBackgroundReconnectTaskAsync();
+
+                    if (attempt == maxRetries) return "";
+                }
+                catch (Exception ex)
+                {
+                    if (ex.InnerException is SocketException)
+                    {
+                        mServerError = true;
+                        _ = StartBackgroundReconnectTaskAsync();
+                    }
+
+                    LastMessage = $"SubmitMaui Exception: {ex.Message}";
+                    LogWriter.WriteLine(LastMessage);
+                    if (attempt == maxRetries) return "";
+                }
+            }
+
+            return "";
+        }
+
+        private async Task<bool> UrlAvailableCheckAsync(string url, int timeoutInSecond = 10)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return false;
+            if (timeoutInSecond <= 0) timeoutInSecond = 10;
+
+            return await Task.Run(async () =>
+            {
+                try
+                {
+                    using (var handler = new HttpClientHandler())
+                    {
+                        handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+                        using (var client = new HttpClient(handler))
+                        {
+                            client.Timeout = TimeSpan.FromSeconds(timeoutInSecond);
+
+                            string userAgent = !string.IsNullOrWhiteSpace(mSoapUserAgent) ? mSoapUserAgent : "BI.Application";
+                            client.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+
+                            using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+                            {
+                                int status = (int)response.StatusCode;
+                                return status >= 100 && status < 400;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LastMessage = $"UrlAvailableCheck Exception: {ex.Message}";
+                    LogWriter.WriteLine(LastMessage);
+                    return false;
+                }
+            }).ConfigureAwait(false);
+        }
+
+        #endregion
+
+        #region --- [THÊM MỚI]: HÀM GỬI SỰ KIỆN NGUỒN CHẠY NGẦM ---
+
+        // =========================================================================
+        // [THÊM MỚI 1]: Hàm bọc gửi sự kiện ngầm (Fire-and-Forget)
+        // Gọi hàm này từ UI/Service bằng cú pháp: _ = _connService.SendCallEventBackgroundAsync(dsData);
+        // UI sẽ HOÀN TOÀN KHÔNG BỊ TRANG/TREO dù mạng chậm.
+        // =========================================================================
+        public async Task SendCallEventBackgroundAsync(DataSet callEventDataSet)
+        {
+            // Chạy việc POST trên một Task ngầm của ThreadPool
+            await Task.Run(async () =>
+            {
+                try
+                {
+                    string jsonPost = ClienJsonPOST(mSecurityCode, "MauiCallEvent", callEventDataSet);
+                    string response = await SubmitMauiAsync(mUrlTrueService, jsonPost);
+
+                    if (string.IsNullOrEmpty(response))
+                    {
+                        LogWriter.WriteLine($"[CallEvent Background] Gửi thất bại: {LastMessage}");
+                    }
+                    else
+                    {
+                        LogWriter.WriteLine("[CallEvent Background] Gửi thành công!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogWriter.WriteLine($"[CallEvent Background] Exception: {ex.Message}");
+                }
+            });
+        }
+
+        #endregion
+
+        #region --- Redirect & Business API Methods ---
+
+        public async Task<string> RedirectAvailableGetAsync()
+        {
+            LastMessage = "";
+            bool ok1 = await UrlAvailableCheckAsync(mRedirectUrlAvailable, 5);
+            if (ok1) return mRedirectUrlAvailable;
+
+            bool ok2 = await UrlAvailableCheckAsync(mRedirectUrlAvailable2, 5);
+            if (ok2) return mRedirectUrlAvailable2;
+
+            LastMessage = "Không thể kết nối đến máy chủ Redirect (Cả 2 URL đều thất bại).";
+            return "";
+        }
+
+        public async Task<bool> MauiRedirectAsync()
+        {
+            string availableRedirectUrl = await RedirectAvailableGetAsync();
+            if (string.IsNullOrEmpty(availableRedirectUrl)) return false;
+
+            DataSet ds = new DataSet();
+            DataTable dt = new DataTable("Table1");
+            dt.Columns.Add("RedirectCode", typeof(string));
+            dt.Columns.Add("UserName", typeof(string));
+            dt.Columns.Add("UserPass", typeof(string));
+
+            DataRow dr = dt.NewRow();
+            dr["RedirectCode"] = mRedirectCode;
+            dr["UserName"] = mRedirectUserName;
+            dr["UserPass"] = mRedirectUserPass;
+            dt.Rows.Add(dr);
+            ds.Tables.Add(dt);
+
+            string jsonPost = ClienJsonPOST("", "MauiRedirect", ds);
+            string jsonResponse = await SubmitMauiAsync(availableRedirectUrl, jsonPost);
+
+            if (string.IsNullOrEmpty(jsonResponse)) return false;
+
+            DataSet dsResult = ClienJsonParse(jsonResponse);
+            if (dsResult != null && dsResult.Tables.Count > 0 && dsResult.Tables[0].Rows.Count > 0)
+            {
+                DataRow row = dsResult.Tables[0].Rows[0];
+                if (row.Table.Columns.Contains("UrlTrueService"))
+                    mUrlTrueService = row["UrlTrueService"].ToString();
+                if (row.Table.Columns.Contains("SecurityCode"))
+                    mSecurityCode = row["SecurityCode"].ToString();
+
+                mServerError = false;
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task<DataSet> MauiLoginAsync(string userName, string userPass)
+        {
+            mUserName = userName;
+            mUserPass = userPass;
+
+            DataSet ds = new DataSet();
+            DataTable dt = new DataTable("Table1");
+            dt.Columns.Add("UserName", typeof(string));
+            dt.Columns.Add("UserPass", typeof(string));
+
+            DataRow dr = dt.NewRow();
+            dr["UserName"] = mUserName;
+            dr["UserPass"] = mUserPass;
+            dt.Rows.Add(dr);
+            ds.Tables.Add(dt);
+
+            string jsonPost = ClienJsonPOST(mSecurityCode, "MauiLogin", ds);
+            string jsonResponse = await SubmitMauiAsync(mUrlTrueService, jsonPost);
+
+            return ClienJsonParse(jsonResponse);
+        }
+
+        public async Task<DataSet> MauiCustomerAsync(string customerCode)
+        {
+            DataSet ds = new DataSet();
+            DataTable dt = new DataTable("Table1");
+            dt.Columns.Add("CustomerCode", typeof(string));
+
+            DataRow dr = dt.NewRow();
+            dr["CustomerCode"] = customerCode;
+            dt.Rows.Add(dr);
+            ds.Tables.Add(dt);
+
+            string jsonPost = ClienJsonPOST(mSecurityCode, "MauiCustomer", ds);
+            string jsonResponse = await SubmitMauiAsync(mUrlTrueService, jsonPost);
+
+            return ClienJsonParse(jsonResponse);
+        }
+
+        #endregion
+
+        #region --- JSON Serialization / Deserialization Helpers ---
+
+        public string ClienJsonPOST(string securityCode, string functionName)
+        {
+            return ClienJsonPOST(securityCode, functionName, null);
+        }
+
+        public string ClienJsonPOST(string securityCode, string functionName, DataSet dsSet)
+        {
+            try
+            {
+                JObject root = new JObject
+                {
+                    { "SecurityCode", securityCode },
+                    { "FunctionName", functionName }
+                };
+
+                if (dsSet != null && dsSet.Tables.Count > 0)
+                {
+                    JObject dataObj = new JObject();
+                    int tableIndex = 1;
+
+                    foreach (DataTable table in dsSet.Tables)
+                    {
+                        JArray rowsArray = new JArray();
+
+                        foreach (DataRow row in table.Rows)
+                        {
+                            JObject rowObj = new JObject();
+                            foreach (DataColumn col in table.Columns)
+                            {
+                                object val = row[col];
+                                string strVal = string.Empty;
+
+                                if (val != DBNull.Value && val != null)
+                                {
+                                    if (val is DateTime dateTimeVal)
+                                    {
+                                        strVal = dateTimeVal.ToString("yyyy-MM-dd HH:mm:ss");
+                                    }
+                                    else
+                                    {
+                                        strVal = val.ToString();
+                                    }
+                                }
+                                rowObj.Add(col.ColumnName, strVal);
+                            }
+                            rowsArray.Add(rowObj);
+                        }
+
+                        string tableName = table.TableName;
+                        if (string.IsNullOrEmpty(tableName))
+                        {
+                            tableName = "Table" + tableIndex.ToString();
+                            tableIndex++;
+                        }
+                        dataObj.Add(tableName, rowsArray);
+                    }
+                    root.Add("data", dataObj);
+                }
+                else
+                {
+                    root.Add("data", JValue.CreateNull());
+                }
+
+                return root.ToString(Formatting.None);
+            }
+            catch (Exception ex)
+            {
+                LastMessage = ex.ToString();
+                return "";
+            }
+        }
+
+        public DataSet ClienJsonParse(string jsonResponse)
+        {
+            if (string.IsNullOrWhiteSpace(jsonResponse)) return null;
+
+            try
+            {
+                DataSet ds = new DataSet();
+                JObject root = JObject.Parse(jsonResponse);
+
+                if (root["data"] != null && root["data"].Type == JTokenType.Object)
+                {
+                    JObject dataObj = (JObject)root["data"];
+                    foreach (var property in dataObj.Properties())
+                    {
+                        DataTable dt = new DataTable(property.Name);
+                        if (property.Value is JArray rowsArray && rowsArray.Count > 0)
+                        {
+                            JObject firstRow = (JObject)rowsArray[0];
+                            foreach (var col in firstRow.Properties())
+                            {
+                                dt.Columns.Add(col.Name, typeof(string));
+                            }
+
+                            foreach (JObject rowObj in rowsArray)
+                            {
+                                DataRow dr = dt.NewRow();
+                                foreach (var col in rowObj.Properties())
+                                {
+                                    dr[col.Name] = col.Value?.ToString() ?? "";
+                                }
+                                dt.Rows.Add(dr);
+                            }
+                        }
+                        ds.Tables.Add(dt);
+                    }
+                }
+                return ds;
+            }
+            catch (Exception ex)
+            {
+                LastMessage = "ClienJsonParse Error: " + ex.Message;
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region --- App Lifecycle Helpers ---
+
+        public async Task<bool> LoadByWakeup()
+        {
+            if (string.IsNullOrEmpty(mSecurityCode))
+            {
+                mUrlTrueService = AppSettings.UrlTrueService;
+                mSecurityCode = AppSettings.SecurityCode;
+
+                if (string.IsNullOrEmpty(mSecurityCode) || string.IsNullOrEmpty(mUrlTrueService))
+                {
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public async Task<bool> LoadByAppStartup()
+        {
+            mRedirectCode = AppSettings.RedirectCode;
+            mRedirectUserName = AppSettings.RedirectUserName;
+            mRedirectUserPass = AppSettings.RedirectUserPass;
+            mRedirectUrlAvailable = AppSettings.RedirectUrlAvailable;
+            mRedirectUrlAvailable2 = AppSettings.RedirectUrlAvailable2;
+
+            if (AppSettings.LoginRememberAccount)
+            {
+                mUserName = AppSettings.LoginUserName;
+                mUserPass = AppSettings.LoginUserPass;
+            }
+            else
+            {
+                mUserName = AppSettings.LoginUserName;
+                mUserPass = "";
+            }
+            return true;
+        }
+
+        #endregion
+    }
+
+    #region --- Helper Placeholder Classes ---
+
+    public static class AppSettings
+    {
+        public static string RedirectCode { get; set; } = "";
+        public static string RedirectUserName { get; set; } = "";
+        public static string RedirectUserPass { get; set; } = "";
+        public static string RedirectUrlAvailable { get; set; } = "";
+        public static string RedirectUrlAvailable2 { get; set; } = "";
+        public static string LoginUserName { get; set; } = "";
+        public static string LoginUserPass { get; set; } = "";
+        public static bool LoginRememberAccount { get; set; } = false;
+        public static string UrlTrueService { get; set; } = "";
+        public static string SecurityCode { get; set; } = "";
+    }
+
+    public static class LogWriter
+    {
+        public static void WriteLine(string message)
+        {
+            System.Diagnostics.Debug.WriteLine($"[LogWriter] {message}");
+        }
+    }
+
+    #endregion
+}
+
+
+
+
+
+
+using System;
+using System.Data;
+using System.IO;
+using System.Net.Http;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Maui.Networking;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace YourNamespace
+{
+    public class ClsConnService
+    {
+        #region --- Fields & Properties ---
+
+        // AsyncLocal giúp lưu tin nhắn lỗi độc lập cho từng Task ngầm (không bị đè lỗi nhau)
+        private static readonly AsyncLocal<string> mLocalLastMessage = new AsyncLocal<string>();
+
+        public static string LastMessage
+        {
+            get => mLocalLastMessage.Value ?? "";
+            set => mLocalLastMessage.Value = value;
+        }
+
+        private string mRedirectCode = "";
+        private string mRedirectUserName = "";
+        private string mRedirectUserPass = "";
+        private string mRedirectUrlAvailable = "";
+        private string mRedirectUrlAvailable2 = "";
+
+        private string mUrlTrueService = "";
+        private string mSecurityCode = "";
+        private string mUserName = "";
+        private string mUserPass = "";
+
+        private int mSoapTimeOut = 10;
+        private string mSoapUserAgent = "BI.Application";
+
+        // Cờ kiểm tra kết nối dùng chung an toàn
+        private volatile bool mNetError = false;
+        private volatile bool mServerError = false;
+
+        public bool NetError => mNetError;
+        public bool ServerError => mServerError;
+
+        public string UrlTrueService
+        {
+            get => mUrlTrueService;
+            set => mUrlTrueService = value;
+        }
+
+        public string SecurityCode
+        {
+            get => mSecurityCode;
+            set => mSecurityCode = value;
+        }
+
+        public string UserName
+        {
+            get => mUserName;
+            set => mUserName = value;
+        }
+
+        public string UserPass
+        {
+            get => mUserPass;
+            set => mUserPass = value;
+        }
+
+        // Semaphore khóa Task Reconnect ngầm chống chạy chồng chéo
+        private readonly SemaphoreSlim mReconnectLock = new SemaphoreSlim(1, 1);
+
+        #endregion
+
+        #region --- Constructors & Event Handlers ---
+
+        public ClsConnService()
+        {
+            InitConnectivityListener();
+        }
+
+        public ClsConnService(string code, string user, string pass, string url1, string url2)
+        {
+            mRedirectCode = code;
+            mRedirectUserName = user;
+            mRedirectUserPass = pass;
+            mRedirectUrlAvailable = url1;
+            mRedirectUrlAvailable2 = url2;
+
+            InitConnectivityListener();
+        }
+
+        private void InitConnectivityListener()
+        {
+            mNetError = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
+
+            Connectivity.Current.ConnectivityChanged -= OnConnectivityChanged;
+            Connectivity.Current.ConnectivityChanged += OnConnectivityChanged;
+        }
+
+        private void OnConnectivityChanged(object sender, ConnectivityChangedEventArgs e)
+        {
+            bool hasInternet = e.NetworkAccess == NetworkAccess.Internet;
+            mNetError = !hasInternet;
+
+            if (hasInternet)
+            {
+                _ = StartBackgroundReconnectTaskAsync();
+            }
+        }
+
+        #endregion
+
+        #region --- Reconnect Background Logic ---
+
+        private async Task StartBackgroundReconnectTaskAsync()
+        {
+            if (!await mReconnectLock.WaitAsync(0))
+            {
+                return;
+            }
+
+            try
+            {
+                if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+                {
+                    bool isReconnected = await MauiRedirectAsync();
+                    if (isReconnected)
+                    {
+                        mServerError = false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LastMessage = $"Background Reconnect Exception: {ex.Message}";
+                LogWriter.WriteLine(LastMessage);
+            }
+            finally
+            {
+                mReconnectLock.Release();
+            }
+        }
+
+        #endregion
+
+        #region --- Core Network Operations (SubmitMauiAsync) ---
+
+        public async Task<string> SubmitMauiAsync(string mTrueUrlService, string jsonPost)
+        {
+            LastMessage = "";
+
+            if (string.IsNullOrEmpty(jsonPost))
+            {
+                LastMessage = "SubmitMaui: JSON POST rỗng";
+                return "";
+            }
+            if (string.IsNullOrEmpty(mTrueUrlService))
+            {
+                LastMessage = "SubmitMaui: URL rỗng";
+                return "";
+            }
+
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            {
+                mNetError = true;
+                LastMessage = "SubmitMaui: Mất kết nối Internet";
+                return "";
+            }
+
+            int nReaden = mTrueUrlService.IndexOf('?');
+            if (nReaden >= 0)
+            {
+                mTrueUrlService = mTrueUrlService.Substring(0, nReaden);
+            }
+            mTrueUrlService = mTrueUrlService.TrimEnd('/');
+            string mUrl = mTrueUrlService + "/SubmitMaui";
+
+            const int maxRetries = 2;
+            const int perRequestTimeoutSeconds = 2;
+
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    using (var handler = new HttpClientHandler())
+                    {
+                        handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
+                        handler.AllowAutoRedirect = true;
+                        handler.UseCookies = false;
+
+                        using (var client = new HttpClient(handler))
+                        {
+                            client.Timeout = TimeSpan.FromSeconds(perRequestTimeoutSeconds);
+                            string userAgent = !string.IsNullOrWhiteSpace(mSoapUserAgent) ? mSoapUserAgent : "BI.Application";
+                            client.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+
+                            using (var content = new StringContent(jsonPost, Encoding.UTF8, "application/json"))
+                            {
+                                using (var response = await client.PostAsync(mUrl, content))
+                                {
+                                    int statusCode = (int)response.StatusCode;
+
+                                    if (statusCode >= 500 && statusCode < 600)
+                                    {
+                                        mServerError = true;
+                                        _ = StartBackgroundReconnectTaskAsync();
+
+                                        LastMessage = $"SubmitMaui Server Error Status: {statusCode} {response.ReasonPhrase}";
+                                        if (attempt < maxRetries) continue;
+                                        return "";
+                                    }
+
+                                    if (!response.IsSuccessStatusCode)
+                                    {
+                                        string errorBody = "";
+                                        try { errorBody = await response.Content.ReadAsStringAsync(); } catch { }
+
+                                        LastMessage = $"SubmitMaui HTTP Error: {statusCode} {response.ReasonPhrase}";
+                                        if (!string.IsNullOrEmpty(errorBody))
+                                        {
+                                            LastMessage += " | Response=" + errorBody;
+                                        }
+                                        return "";
+                                    }
+
+                                    string result = await response.Content.ReadAsStringAsync();
+                                    if (string.IsNullOrEmpty(result))
+                                    {
+                                        LastMessage = "SubmitMaui: Server trả body rỗng";
+                                        return "";
+                                    }
+
+                                    mServerError = false;
+                                    LastMessage = "";
+                                    return result;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (TaskCanceledException ex)
+                {
+                    LastMessage = $"SubmitMaui Attempt {attempt} Timeout (>{perRequestTimeoutSeconds}s): {ex.Message}";
+                    LogWriter.WriteLine(LastMessage);
+
+                    if (attempt == maxRetries)
+                    {
+                        mServerError = true;
+                        _ = StartBackgroundReconnectTaskAsync();
+                    }
+                }
+                catch (HttpRequestException ex)
+                {
+                    LastMessage = $"SubmitMaui Attempt {attempt} HttpRequestException: {ex.Message}";
+                    LogWriter.WriteLine(LastMessage);
+
+                    mServerError = true;
+                    _ = StartBackgroundReconnectTaskAsync();
+
+                    if (attempt == maxRetries) return "";
+                }
+                catch (Exception ex)
+                {
+                    if (ex.InnerException is SocketException)
+                    {
+                        mServerError = true;
+                        _ = StartBackgroundReconnectTaskAsync();
+                    }
+
+                    LastMessage = $"SubmitMaui Exception: {ex.Message}";
+                    LogWriter.WriteLine(LastMessage);
+                    if (attempt == maxRetries) return "";
+                }
+            }
+
+            return "";
+        }
+
+        private async Task<bool> UrlAvailableCheckAsync(string url, int timeoutInSecond = 10)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return false;
+            if (timeoutInSecond <= 0) timeoutInSecond = 10;
+
+            return await Task.Run(async () =>
+            {
+                try
+                {
+                    using (var handler = new HttpClientHandler())
+                    {
+                        handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+                        using (var client = new HttpClient(handler))
+                        {
+                            client.Timeout = TimeSpan.FromSeconds(timeoutInSecond);
+
+                            string userAgent = !string.IsNullOrWhiteSpace(mSoapUserAgent) ? mSoapUserAgent : "BI.Application";
+                            client.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+
+                            using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+                            {
+                                int status = (int)response.StatusCode;
+                                return status >= 100 && status < 400;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LastMessage = $"UrlAvailableCheck Exception: {ex.Message}";
+                    LogWriter.WriteLine(LastMessage);
+                    return false;
+                }
+            }).ConfigureAwait(false);
+        }
+
+        #endregion
+
+        #region --- Hàm hỗ trợ Gửi Sự Kiện Ngầm ---
+
+        /// <summary>
+        /// Hàm chuyên dụng gửi sự kiện (cuộc gọi, log...) ngầm mà KHÔNG LÀM TREO GIAO DIỆN.
+        /// Cách gọi: _ = connService.SendCallEventBackgroundAsync(dsCallData);
+        /// </summary>
+        public async Task SendCallEventBackgroundAsync(DataSet callEventDataSet)
+        {
+            await Task.Run(async () =>
+            {
+                try
+                {
+                    string jsonPost = ClienJsonPOST(mSecurityCode, "MauiCallEvent", callEventDataSet);
+                    string response = await SubmitMauiAsync(mUrlTrueService, jsonPost);
+
+                    if (string.IsNullOrEmpty(response))
+                    {
+                        LogWriter.WriteLine($"[CallEvent Background] Gửi thất bại: {LastMessage}");
+                    }
+                    else
+                    {
+                        LogWriter.WriteLine("[CallEvent Background] Gửi thành công!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogWriter.WriteLine($"[CallEvent Background] Exception: {ex.Message}");
+                }
+            });
+        }
+
+        #endregion
+
+        #region --- Redirect & Business API Methods ---
+
+        public async Task<string> RedirectAvailableGetAsync()
+        {
+            LastMessage = "";
+            bool ok1 = await UrlAvailableCheckAsync(mRedirectUrlAvailable, 5);
+            if (ok1) return mRedirectUrlAvailable;
+
+            bool ok2 = await UrlAvailableCheckAsync(mRedirectUrlAvailable2, 5);
+            if (ok2) return mRedirectUrlAvailable2;
+
+            LastMessage = "Không thể kết nối đến máy chủ Redirect (Cả 2 URL đều thất bại).";
+            return "";
+        }
+
+        public async Task<bool> MauiRedirectAsync()
+        {
+            string availableRedirectUrl = await RedirectAvailableGetAsync();
+            if (string.IsNullOrEmpty(availableRedirectUrl)) return false;
+
+            DataSet ds = new DataSet();
+            DataTable dt = new DataTable("Table1");
+            dt.Columns.Add("RedirectCode", typeof(string));
+            dt.Columns.Add("UserName", typeof(string));
+            dt.Columns.Add("UserPass", typeof(string));
+
+            DataRow dr = dt.NewRow();
+            dr["RedirectCode"] = mRedirectCode;
+            dr["UserName"] = mRedirectUserName;
+            dr["UserPass"] = mRedirectUserPass;
+            dt.Rows.Add(dr);
+            ds.Tables.Add(dt);
+
+            string jsonPost = ClienJsonPOST("", "MauiRedirect", ds);
+            string jsonResponse = await SubmitMauiAsync(availableRedirectUrl, jsonPost);
+
+            if (string.IsNullOrEmpty(jsonResponse)) return false;
+
+            DataSet dsResult = ClienJsonParse(jsonResponse);
+            if (dsResult != null && dsResult.Tables.Count > 0 && dsResult.Tables[0].Rows.Count > 0)
+            {
+                DataRow row = dsResult.Tables[0].Rows[0];
+                if (row.Table.Columns.Contains("UrlTrueService"))
+                    mUrlTrueService = row["UrlTrueService"].ToString();
+                if (row.Table.Columns.Contains("SecurityCode"))
+                    mSecurityCode = row["SecurityCode"].ToString();
+
+                mServerError = false;
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task<DataSet> MauiLoginAsync(string userName, string userPass)
+        {
+            mUserName = userName;
+            mUserPass = userPass;
+
+            DataSet ds = new DataSet();
+            DataTable dt = new DataTable("Table1");
+            dt.Columns.Add("UserName", typeof(string));
+            dt.Columns.Add("UserPass", typeof(string));
+
+            DataRow dr = dt.NewRow();
+            dr["UserName"] = mUserName;
+            dr["UserPass"] = mUserPass;
+            dt.Rows.Add(dr);
+            ds.Tables.Add(dt);
+
+            string jsonPost = ClienJsonPOST(mSecurityCode, "MauiLogin", ds);
+            string jsonResponse = await SubmitMauiAsync(mUrlTrueService, jsonPost);
+
+            return ClienJsonParse(jsonResponse);
+        }
+
+        public async Task<DataSet> MauiCustomerAsync(string customerCode)
+        {
+            DataSet ds = new DataSet();
+            DataTable dt = new DataTable("Table1");
+            dt.Columns.Add("CustomerCode", typeof(string));
+
+            DataRow dr = dt.NewRow();
+            dr["CustomerCode"] = customerCode;
+            dt.Rows.Add(dr);
+            ds.Tables.Add(dt);
+
+            string jsonPost = ClienJsonPOST(mSecurityCode, "MauiCustomer", ds);
+            string jsonResponse = await SubmitMauiAsync(mUrlTrueService, jsonPost);
+
+            return ClienJsonParse(jsonResponse);
+        }
+
+        #endregion
+
+        #region --- JSON Serialization / Deserialization Helpers ---
+
+        public string ClienJsonPOST(string securityCode, string functionName)
+        {
+            return ClienJsonPOST(securityCode, functionName, null);
+        }
+
+        public string ClienJsonPOST(string securityCode, string functionName, DataSet dsSet)
+        {
+            try
+            {
+                JObject root = new JObject
+                {
+                    { "SecurityCode", securityCode },
+                    { "FunctionName", functionName }
+                };
+
+                if (dsSet != null && dsSet.Tables.Count > 0)
+                {
+                    JObject dataObj = new JObject();
+                    int tableIndex = 1;
+
+                    foreach (DataTable table in dsSet.Tables)
+                    {
+                        JArray rowsArray = new JArray();
+
+                        foreach (DataRow row in table.Rows)
+                        {
+                            JObject rowObj = new JObject();
+                            foreach (DataColumn col in table.Columns)
+                            {
+                                object val = row[col];
+                                string strVal = string.Empty;
+
+                                if (val != DBNull.Value && val != null)
+                                {
+                                    if (val is DateTime dateTimeVal)
+                                    {
+                                        strVal = dateTimeVal.ToString("yyyy-MM-dd HH:mm:ss");
+                                    }
+                                    else
+                                    {
+                                        strVal = val.ToString();
+                                    }
+                                }
+                                rowObj.Add(col.ColumnName, strVal);
+                            }
+                            rowsArray.Add(rowObj);
+                        }
+
+                        string tableName = table.TableName;
+                        if (string.IsNullOrEmpty(tableName))
+                        {
+                            tableName = "Table" + tableIndex.ToString();
+                            tableIndex++;
+                        }
+                        dataObj.Add(tableName, rowsArray);
+                    }
+                    root.Add("data", dataObj);
+                }
+                else
+                {
+                    root.Add("data", JValue.CreateNull());
+                }
+
+                return root.ToString(Formatting.None);
+            }
+            catch (Exception ex)
+            {
+                LastMessage = ex.ToString();
+                return "";
+            }
+        }
+
+        public DataSet ClienJsonParse(string jsonResponse)
+        {
+            if (string.IsNullOrWhiteSpace(jsonResponse)) return null;
+
+            try
+            {
+                DataSet ds = new DataSet();
+                JObject root = JObject.Parse(jsonResponse);
+
+                if (root["data"] != null && root["data"].Type == JTokenType.Object)
+                {
+                    JObject dataObj = (JObject)root["data"];
+                    foreach (var property in dataObj.Properties())
+                    {
+                        DataTable dt = new DataTable(property.Name);
+                        if (property.Value is JArray rowsArray && rowsArray.Count > 0)
+                        {
+                            JObject firstRow = (JObject)rowsArray[0];
+                            foreach (var col in firstRow.Properties())
+                            {
+                                dt.Columns.Add(col.Name, typeof(string));
+                            }
+
+                            foreach (JObject rowObj in rowsArray)
+                            {
+                                DataRow dr = dt.NewRow();
+                                foreach (var col in rowObj.Properties())
+                                {
+                                    dr[col.Name] = col.Value?.ToString() ?? "";
+                                }
+                                dt.Rows.Add(dr);
+                            }
+                        }
+                        ds.Tables.Add(dt);
+                    }
+                }
+                return ds;
+            }
+            catch (Exception ex)
+            {
+                LastMessage = "ClienJsonParse Error: " + ex.Message;
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region --- App Lifecycle Helpers ---
+
+        public async Task<bool> LoadByWakeup()
+        {
+            if (string.IsNullOrEmpty(mSecurityCode))
+            {
+                mUrlTrueService = AppSettings.UrlTrueService;
+                mSecurityCode = AppSettings.SecurityCode;
+
+                if (string.IsNullOrEmpty(mSecurityCode) || string.IsNullOrEmpty(mUrlTrueService))
+                {
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public async Task<bool> LoadByAppStartup()
+        {
+            mRedirectCode = AppSettings.RedirectCode;
+            mRedirectUserName = AppSettings.RedirectUserName;
+            mRedirectUserPass = AppSettings.RedirectUserPass;
+            mRedirectUrlAvailable = AppSettings.RedirectUrlAvailable;
+            mRedirectUrlAvailable2 = AppSettings.RedirectUrlAvailable2;
+
+            if (AppSettings.LoginRememberAccount)
+            {
+                mUserName = AppSettings.LoginUserName;
+                mUserPass = AppSettings.LoginUserPass;
+            }
+            else
+            {
+                mUserName = AppSettings.LoginUserName;
+                mUserPass = "";
+            }
+            return true;
+        }
+
+        #endregion
+    }
+
+    #region --- Helper Placeholder Classes ---
+
+    public static class AppSettings
+    {
+        public static string RedirectCode { get; set; } = "";
+        public static string RedirectUserName { get; set; } = "";
+        public static string RedirectUserPass { get; set; } = "";
+        public static string RedirectUrlAvailable { get; set; } = "";
+        public static string RedirectUrlAvailable2 { get; set; } = "";
+        public static string LoginUserName { get; set; } = "";
+        public static string LoginUserPass { get; set; } = "";
+        public static bool LoginRememberAccount { get; set; } = false;
+        public static string UrlTrueService { get; set; } = "";
+        public static string SecurityCode { get; set; } = "";
+    }
+
+    public static class LogWriter
+    {
+        public static void WriteLine(string message)
+        {
+            System.Diagnostics.Debug.WriteLine($"[LogWriter] {message}");
+        }
+    }
+
+    #endregion
+}

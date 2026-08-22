@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.INTERNET" />
+
+	<!-- Quyền gọi cửa sổ quay số: Để bấm gọi đi, điền sẵn cho kh sử dụng -->
+	<uses-permission android:name="android.permission.ACTION_DIAL" />
+	
+	<!-- Quyền đọc thông tin cuộc gọi -->
+	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+	<uses-permission android:name="android.permission.READ_CALL_LOG" />
+
+	<!-- Quyền đọc nhấn nghe và huỷ cuộc gọi -->
+	<uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+	<uses-permission android:name="android.permission.CALL_PHONE" />
+
+	<!-- Nhận số gọi đi -->
+	<uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />
+	<!-- Phục vụ tránh báo lỗi liên quan tới Call Screening-->
+	<uses-permission android:name="android.permission.READ_CONTACTS" />
+	<!-- Call Screening -->
+	<uses-permission android:name="android.permission.MANAGE_OWN_CALLS"/>
+
+	<!-- Pin -->
+	<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
+	<!-- Overlay -->
+	<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+	<!-- Foreground -->
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+	<!-- BẮT BUỘC cho Android 13+ để hiển thị Notification -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+	<!-- ĐẶT Ở ĐÂY: Trực tiếp dưới <manifest> và phía TRÊN <application> -->
+	<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+
+	<!-- Quyền truy cập nội dung thông báo -->
+	<uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
+
+	<!-- Quyền quét danh sách app (Dành cho Android 11+) -->
+	<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+                     tools:ignore="QueryAllPackagesPermission"
+                     xmlns:tools="http://schemas.android.com/tools" />
+	
+	<!-- Bổ sung android:usesCleartextTraffic để thử HttpClient thay cho HttpWebRequest -->
+	<application
+        android:allowBackup="true"
+        android:icon="@mipmap/appicon"
+        android:roundIcon="@mipmap/appicon_round"
+        android:supportsRtl="true"
+		android:usesCleartextTraffic="true">
+
+		<!-- AgentService -->
+		<service
+            android:name=".Platforms.Android.AgentService"
+            android:foregroundServiceType="phoneCall"
+            android:enabled="true"
+            android:exported="false" />
+
+		<!-- Call Screening -->
+		<service
+            android:name="biphone.platforms.android.CallScreeningEx"
+            android:permission="android.permission.BIND_SCREENING_SERVICE"
+            android:enabled="true"
+            android:exported="true">
+
+			<intent-filter>
+				<action android:name="android.telecom.CallScreeningService"/>
+			</intent-filter>
+
+			<meta-data
+                android:name="android.telecom.CallScreeningService"
+                android:value="true"/>
+		</service>
+		
+	</application>
+
+</manifest>

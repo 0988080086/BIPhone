@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    x:Class="BIPhone.Views.LoginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="#F5F5F5">
+
+    <Grid
+        RowDefinitions="Auto,*,Auto"
+        Padding="15,0,15,15">
+
+        <!-- ================================================= -->
+        <!-- TIÊU ĐỀ -->
+        <!-- ================================================= -->
+
+        <Label
+            Grid.Row="0"
+            Margin="0,5,0,5"
+            FontAttributes="Bold"
+            FontSize="24"
+            HorizontalTextAlignment="Center"
+            Text="Đăng nhập phần mềm"
+            TextColor="#EE4D2D" />
+
+
+        <!-- ================================================= -->
+        <!-- NỘI DUNG -->
+        <!-- ================================================= -->
+
+        <ScrollView Grid.Row="1">
+
+            <VerticalStackLayout Spacing="15">
+
+
+                <!-- ========================================= -->
+                <!-- MÁY CHỦ -->
+                <!-- ========================================= -->
+
+                <Border
+                    BackgroundColor="White"
+                    Padding="15,0,15,15"
+                    Stroke="#DDDDDD"
+                    StrokeShape="RoundRectangle 10"
+                    StrokeThickness="1">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label
+                            FontAttributes="Bold"
+                            FontSize="17"
+                            Text="Máy chủ"
+                            TextColor="#EE4D2D" />
+
+
+                        <!-- Mã máy chủ -->
+
+                        <Label
+                            FontSize="13"
+                            Text="Mã máy chủ"
+                            TextColor="#555555" />
+
+                        <Entry
+                            x:Name="txtRedirectCode"
+                            FontSize="15"
+                            Placeholder="Nhập mã máy chủ"
+                            TextColor="#333333" />
+
+
+                        <!-- Tên máy chủ -->
+
+                        <Label
+                            FontSize="13"
+                            Text="Tên máy chủ"
+                            TextColor="#555555" />
+
+                        <Entry
+                            x:Name="txtRedirectName"
+                            FontSize="15"
+                            Placeholder="Nhập tên máy chủ"
+                            TextColor="#333333" />
+
+
+                        <!-- Mật khẩu máy chủ -->
+
+                        <Label
+                            FontSize="13"
+                            Text="Mật khẩu máy chủ"
+                            TextColor="#555555" />
+
+                        <Entry
+                            x:Name="txtRedirectPass"
+                            FontSize="15"
+                            IsPassword="True"
+                            Placeholder="Nhập mật khẩu máy chủ"
+                            TextColor="#333333" />
+
+
+                        <!-- URL service -->
+                        <!-- Tạm thời bỏ
+                        <Border
+                            BackgroundColor="#F5F5F5"
+                            Padding="10"
+                            Stroke="#DDDDDD"
+                            StrokeShape="RoundRectangle 6"
+                            StrokeThickness="1">
+
+                            <VerticalStackLayout Spacing="3">
+
+                                <Label
+                                    FontSize="12"
+                                    Text="Service đang sử dụng:"
+                                    TextColor="#777777" />
+
+                                <Label
+                                    x:Name="lblTrueService"
+                                    FontSize="13"
+                                    LineBreakMode="WordWrap"
+                                    Text="Chưa kết nối"
+                                    TextColor="#333333" />
+
+                            </VerticalStackLayout>
+
+                        </Border>
+                        -->
+
+                    </VerticalStackLayout>
+
+                </Border>
+
+
+                <!-- ========================================= -->
+                <!-- TÀI KHOẢN NGƯỜI DÙNG -->
+                <!-- ========================================= -->
+
+                <Border
+                    BackgroundColor="White"
+                    Padding="15,0,15,15"
+                    Stroke="#DDDDDD"
+                    StrokeShape="RoundRectangle 10"
+                    StrokeThickness="1">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label
+                            FontAttributes="Bold"
+                            FontSize="17"
+                            Text="Tài khoản người dùng"
+                            TextColor="#EE4D2D" />
+
+
+                        <!-- Tên truy cập -->
+
+                        <Label
+                            FontSize="13"
+                            Text="Tên truy cập"
+                            TextColor="#555555" />
+
+                        <Entry
+                            x:Name="txtUserName"
+                            FontSize="15"
+                            Placeholder="Tên truy cập"
+                            TextColor="#333333" />
+
+
+                        <!-- Mật khẩu -->
+
+                        <Label
+                            FontSize="13"
+                            Text="Mật khẩu"
+                            TextColor="#555555" />
+
+                        <Entry
+                            x:Name="txtUserPass"
+                            FontSize="15"
+                            IsPassword="True"
+                            Placeholder="Mật khẩu"
+                            TextColor="#333333" />
+
+
+                        <!-- Nhớ tài khoản -->
+                        <Grid ColumnDefinitions="*, *" ColumnSpacing="10" VerticalOptions="Center">
+
+                            <!-- Khối 1: Lưu tài khoản -->
+                            <HorizontalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                                <CheckBox
+                                    x:Name="chkRememberAccount"
+                                    Color="#EE4D2D"
+                                    HeightRequest="32"
+                                    WidthRequest="32"
+                                    Margin="-6,0,0,0"
+                                    VerticalOptions="Center" />
+
+                                <Label
+                                    FontSize="13"
+                                    Text="Lưu tài khoản"
+                                    TextColor="#444444"
+                                    VerticalOptions="Center"
+                                    LineBreakMode="NoWrap">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnRememberAccountLabelTapped" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </HorizontalStackLayout>
+
+                            <!-- Khối 2: Tự động đăng nhập -->
+                            <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                <CheckBox
+                                    x:Name="chkRememberAutoLogin"
+                                    Color="#EE4D2D"
+                                    HeightRequest="32"
+                                    WidthRequest="32"
+                                    Margin="-6,0,0,0"
+                                    VerticalOptions="Center" />
+
+                                <Label
+                                    FontSize="13"
+                                    Text="Tự động đăng nhập"
+                                    TextColor="#444444"
+                                    VerticalOptions="Center"
+                                    LineBreakMode="NoWrap">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnRememberAutoLoginLabelTapped" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </HorizontalStackLayout>
+
+                        </Grid>
+
+                    </VerticalStackLayout>
+
+                </Border>
+
+
+                <!-- ========================================= -->
+                <!-- TRẠNG THÁI -->
+                <!-- ========================================= -->
+
+                <Border
+                    BackgroundColor="#FFF8F5"
+                    Padding="10"
+                    Stroke="#FFE0D5"
+                    StrokeShape="RoundRectangle 6"
+                    StrokeThickness="1">
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label
+                            x:Name="lblTrueService"
+                            FontSize="13"
+                            HorizontalTextAlignment="Center"
+                            LineBreakMode="WordWrap"
+                            TextColor="#EE4D2D" />
+
+                        <Label
+                            x:Name="lblMessage"
+                            FontSize="13"
+                            HorizontalTextAlignment="Center"
+                            LineBreakMode="WordWrap"
+                            TextColor="#EE4D2D" />
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+
+        </ScrollView>
+
+
+        <!-- ================================================= -->
+        <!-- 3 NÚT CUỐI -->
+        <!-- ================================================= -->
+
+        <Grid
+            Grid.Row="2"
+            Margin="0,15,0,0"
+            ColumnDefinitions="*,*,*"
+            ColumnSpacing="8">
+
+            <Button
+                Grid.Column="0"
+                BackgroundColor="#EE4D2D"
+                Clicked="OnLoginClicked"
+                CornerRadius="8"
+                FontAttributes="Bold"
+                FontSize="14"
+                Text="Đăng nhập"
+                TextColor="White" />
+
+            <Button
+                Grid.Column="1"
+                BackgroundColor="#EEEEEE"
+                Clicked="OnSkipClicked"
+                CornerRadius="8"
+                FontSize="14"
+                Text="Bỏ qua"
+                TextColor="#444444" />
+
+            <Button
+                Grid.Column="2"
+                BackgroundColor="#555555"
+                Clicked="OnExitClicked"
+                CornerRadius="8"
+                FontSize="14"
+                Text="Thoát"
+                TextColor="White" />
+
+        </Grid>
+
+    </Grid>
+</ContentPage>
