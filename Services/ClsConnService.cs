@@ -17,8 +17,7 @@ public class ClsConnService
     private string mRedirectUrlAvailable;
     private string mRedirectUrlAvailable2;
     private string mUrlTrueService;
-    private string mSoapUserAgent = "BI.Application";
-    private string mLastMessage;
+    private string mSoapUserAgent = "BI.Application";    
 
     private string mUserName;
     private string mUserPass;
@@ -36,8 +35,7 @@ public class ClsConnService
         mSoapTimeOut = 30;
         mRedirectUrlAvailable = "";
         mRedirectUrlAvailable2 = "";
-        mUrlTrueService = "";
-        mLastMessage = "";
+        mUrlTrueService = "";        
 
         mUserName = "";
         mUserPass = "";
@@ -58,8 +56,7 @@ public class ClsConnService
         mItem.mSoapUserAgent = mSoapUserAgent;
         mItem.mUserName = mUserName;
         mItem.mUserPass = mUserPass;
-        mItem.mSecurityCode = mSecurityCode;
-        mItem.mLastMessage = mLastMessage;
+        mItem.mSecurityCode = mSecurityCode;        
 
         return mItem;
     }
@@ -127,138 +124,244 @@ public class ClsConnService
 
     public string SecurityCode { get { return mSecurityCode; } }
     public string RedirectUrlAvailable { get { return mRedirectUrlAvailable; } }
-    public string RedirectUrlAvailable2 { get { return mRedirectUrlAvailable2; } }
-    public string LastMessage { get { return mLastMessage; } }
+    public string RedirectUrlAvailable2 { get { return mRedirectUrlAvailable2; } }    
     public string UrlTrueService { get { return mUrlTrueService; } }
 
     #endregion
 
     /// <summary>Bước 1: Tìm địa chỉ nào hỗ trợ Redirect.Chạy tuần tự và đợi từng UrlAvailableCheckAsync hoàn thành.</summary>
-    public async Task<bool> RedirectAvailableGetAsync(int timeout = 10)
+    public async Task<(bool _Success, string _LastMessage)> RedirectAvailableGetAsync(int timeout = 10)
     {
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        bool vSuccess = false;
+        string vLastMessage = "";
         long count = 0;
-        mLastMessage = "";
 
+        // Biến hứng kết quả tạm từ UrlAvailableCheckAsync
+        bool checkSuccess = false;
+        string checkLastMessage = "";
+
+        // Reset lại trạng thái khả dụng cũ trước khi kiểm tra mới
+        mRedirectUrlAvailable = "";
+        mRedirectUrlAvailable2 = "";
+
+        // 2. Kiểm tra mRedirectUrl thứ nhất
         if (!string.IsNullOrEmpty(mRedirectUrl))
         {
-            if (await UrlAvailableCheckAsync(mRedirectUrl, timeout))
+            (checkSuccess, checkLastMessage) = await UrlAvailableCheckAsync(mRedirectUrl, timeout);
+
+            if (checkSuccess)
             {
                 mRedirectUrlAvailable = mRedirectUrl;
                 count++;
             }
+            else
+            {
+                // Lưu lại lỗi của URL1 nếu kiểm tra thất bại
+                vLastMessage = checkLastMessage;
+            }
         }
 
+        // 3. Kiểm tra mRedirectUrl2 thứ hai
         if (!string.IsNullOrEmpty(mRedirectUrl2))
         {
-            if (await UrlAvailableCheckAsync(mRedirectUrl2, timeout))
+            (checkSuccess, checkLastMessage) = await UrlAvailableCheckAsync(mRedirectUrl2, timeout);
+
+            if (checkSuccess)
             {
                 mRedirectUrlAvailable2 = mRedirectUrl2;
                 count++;
             }
+            else
+            {
+                // Nếu URL1 đã có lỗi và URL2 cũng lỗi thì nối thêm chuỗi, hoặc đè message mới nhất
+                if (string.IsNullOrEmpty(vLastMessage))
+                {
+                    vLastMessage = checkLastMessage;
+                }
+                else
+                {
+                    vLastMessage += " | " + checkLastMessage;
+                }
+            }
         }
 
-        return count > 0;
+        // 4. Tổng hợp kết quả trả về
+        if (count > 0)
+        {
+            vSuccess = true;
+            // Nếu có ít nhất 1 URL khả dụng thì xóa thông báo lỗi
+            vLastMessage = "";
+        }
+        else
+        {
+            vSuccess = false;
+            if (string.IsNullOrEmpty(vLastMessage))
+            {
+                vLastMessage = "Không có URL Redirect nào hợp lệ để kiểm tra";
+            }
+        }
+
+        // 5. Return cuối hàm chuẩn Tuple
+        return (vSuccess, vLastMessage);
     }
 
     /// <summary>Bước 2: Gọi MauiRedirect tìm mUrlTrueService (POST được await hoàn thành trước khi xử lý response)</summary>
-    public async Task<bool> MauiRedirectAsync()
+    public async Task<(bool _Success, string _LastMessage)> MauiRedirectAsync()
     {
-        mLastMessage = "";
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        bool vSuccess = false;
+        string vLastMessage = "";
+
+        // 2. Kiểm tra điều kiện URL redirect khả dụng
         if (string.IsNullOrEmpty(mRedirectUrlAvailable) && string.IsNullOrEmpty(mRedirectUrlAvailable2))
         {
-            mLastMessage = "mRedirectUrlAvailable và mRedirectUrlAvailable2 chưa có";
+            vSuccess = false;
+            vLastMessage = "mRedirectUrlAvailable và mRedirectUrlAvailable2 chưa có";
             mUrlTrueService = "";
-            return false;
+            return (vSuccess, vLastMessage);
         }
+
+        // 3. Khởi tạo dữ liệu POST
         DataTable tblParameter = new DataTable("Parameter");
         tblParameter.Columns.Add("RedirectCode", typeof(string));
         tblParameter.Columns.Add("RedirectUserName", typeof(string));
         tblParameter.Columns.Add("RedirectUserPass", typeof(string));
         tblParameter.Rows.Add(mRedirectCode, mRedirectUserName, mRedirectUserPass);
+
         DataSet ds = new DataSet();
         ds.Tables.Add(tblParameter);
-        string dataPost = ClienJsonPOST("", "MauiRedirect", ds);
+
+        //string dataPost = ClienJsonPOST("", "MauiRedirect", ds);
+        string dataPost = ""; string _subLastMessage = ""; 
+        (dataPost, _subLastMessage) = ClienJsonPOST("", "MauiRedirect", ds);
+        if (string.IsNullOrEmpty(dataPost))
+        {
+            vSuccess = false;
+            vLastMessage = "MauiRedirect: ClienJsonPOST trả về rỗng (" + _subLastMessage + ")";
+            mUrlTrueService = "";
+            return (vSuccess, vLastMessage);
+        }
+
+        // 4. Chọn URL ưu tiên và thực hiện POST
         string targetUrl = !string.IsNullOrEmpty(mRedirectUrlAvailable) ? mRedirectUrlAvailable : mRedirectUrlAvailable2;
-        string responseStr = await SubmitMauiAsync(targetUrl, dataPost);
+        _subLastMessage = "";
+        string responseStr = "";
+        (responseStr, _subLastMessage) = await SubmitMauiAsync(targetUrl, dataPost);
+
         if (string.IsNullOrEmpty(responseStr))
         {
-            return false;
+            vSuccess = false;
+            vLastMessage = $"MauiRedirect: SubmitMauiAsync tới [{targetUrl}] trả về rỗng hoặc lỗi kết nối";
+            mUrlTrueService = "";
+            return (vSuccess, vLastMessage);
         }
+
+        // 5. Phân tích kết quả JSON trả về
         string errorNum;
         string parseErrorDesc;
         DataSet dsSet;
         string error;
+
         if (!ClienJsonParse(responseStr, out errorNum, out parseErrorDesc, out dsSet, out error))
         {
-            mLastMessage = "MauiRedirect.ClienJsonParse: " + error;
-            return false;
+            vSuccess = false;
+            vLastMessage = "MauiRedirect.ClienJsonParse: " + error;
+            mUrlTrueService = "";
+            return (vSuccess, vLastMessage);
         }
+
+        // 6. Xử lý logic gán ServerUrl
         long errCode;
         if (long.TryParse(errorNum, out errCode) && errCode == 200 && dsSet != null && dsSet.Tables.Contains("Parameter") && dsSet.Tables["Parameter"].Rows.Count > 0)
         {
             DataTable tbl = dsSet.Tables["Parameter"];
             string serverUrl = tbl.Rows[0]["ServerUrl"].ToString();
             serverUrl = serverUrl.Replace("biservice.asmx", "bimaui.asmx").Replace("biserviceV2.asmx", "bimaui.asmx");
+
             mUrlTrueService = serverUrl;
-            mLastMessage = "";
-            return true;
+
+            vSuccess = true;
+            vLastMessage = ""; // Thành công
+            return (vSuccess, vLastMessage);
         }
-        mLastMessage = "MauiRedirect: ErrorNumber=" + errorNum + ", ErrorDescript=" + parseErrorDesc;
+
+        // Trường hợp lỗi từ phía máy chủ trả về
+        vSuccess = false;
+        vLastMessage = "MauiRedirect: ErrorNumber=" + errorNum + ", ErrorDescript=" + parseErrorDesc;
         mUrlTrueService = "";
-        return false;
+        return (vSuccess, vLastMessage);
     }
     /// <summary>Bước 3: MauiLogin.POST được await hoàn thành trước khi parse response.</summary>
-    public async Task<bool> MauiLoginAsync()
+    public async Task<(bool _Success, string _LastMessage)> MauiLoginAsync()
     {
-        mLastMessage = "";
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        bool vSuccess = false;
+        string vLastMessage = "";
 
+        // Biến hứng kết quả tạm từ UrlAvailableCheckAsync
+        bool checkSuccess = false;
+        string checkLastMessage = "";
+
+        // 2. Kiểm tra các điều kiện đầu vào
         if (string.IsNullOrEmpty(mUrlTrueService))
         {
-            mLastMessage = "Không tồn tại đường dẫn máy chủ đích";
-            return false;
+            vSuccess = false;
+            vLastMessage = "Không tồn tại đường dẫn máy chủ đích";
+            return (vSuccess, vLastMessage);
         }
 
-        if (!await UrlAvailableCheckAsync(mUrlTrueService, mSoapTimeOut))
+        // Kiểm tra khả dụng đường dẫn (gọi hàm UrlAvailableCheckAsync kiểu Tuple mới)
+        (checkSuccess, checkLastMessage) = await UrlAvailableCheckAsync(mUrlTrueService, mSoapTimeOut);
+        if (!checkSuccess)
         {
-            mLastMessage = $"Máy chủ dữ liệu [{mUrlTrueService}] không phản hồi";
-            return false;
+            vSuccess = false;
+            vLastMessage = $"Máy chủ dữ liệu [{mUrlTrueService}] không phản hồi. Chi tiết: {checkLastMessage}";
+            return (vSuccess, vLastMessage);
         }
 
         if (string.IsNullOrEmpty(mUserName) || string.IsNullOrEmpty(mUserPass))
         {
-            mLastMessage = "Chưa khai báo tài khoản người sử dụng";
-            return false;
+            vSuccess = false;
+            vLastMessage = "Chưa khai báo tài khoản người sử dụng";
+            return (vSuccess, vLastMessage);
         }
 
+        // 3. Khởi tạo dữ liệu gửi POST
         DataTable tblParameter = new DataTable("Parameter");
         tblParameter.Columns.Add("UserName", typeof(string));
         tblParameter.Columns.Add("UserPass", typeof(string));
         tblParameter.Columns.Add("DeviceID", typeof(string));
         tblParameter.Columns.Add("Platform", typeof(string));
         tblParameter.Columns.Add("PhoneToken", typeof(string));
-        //tblParameter.Columns.Add("AppType", typeof(string));
 
-        //tblParameter.Rows.Add(mUserName, mUserPass, AppSettings.DeviceID, AppSettings.Platform, AppSettings.PhoneToken, AppSettings.AppType.ToString());
         tblParameter.Rows.Add(mUserName, mUserPass, AppSettings.DeviceID, AppSettings.Platform, AppSettings.PhoneToken);
+
         DataSet ds = new DataSet();
         ds.Tables.Add(tblParameter);
-        string dataPost = ClienJsonPOST("", "MauiLogin", ds);
+
+        string dataPost = "";
+        string _subLastMessage = "";
+        (dataPost, _subLastMessage) = ClienJsonPOST("", "MauiLogin", ds);
         if (string.IsNullOrEmpty(dataPost))
         {
-            mLastMessage = "MauiLogin.ClienJsonPOST: " + mLastMessage;
-            return false;
+            vSuccess = false;
+            vLastMessage = "MauiLogin.ClienJsonPOST: Tạo dữ liệu gửi đi thất bại("+ _subLastMessage + ")";
+            return (vSuccess, vLastMessage);
         }
 
-        string responseStr = await SubmitMauiAsync(mUrlTrueService, dataPost);
+        // 4. Gửi dữ liệu tới máy chủ
+        string responseStr = "";
+        _subLastMessage = "";
+        (responseStr, _subLastMessage) = await SubmitMauiAsync(mUrlTrueService, dataPost);
         if (string.IsNullOrEmpty(responseStr))
         {
-            if (string.IsNullOrEmpty(mLastMessage))
-            {
-                mLastMessage = "MauiLogin.SubmitMaui: Server không trả dữ liệu";
-            }
-            return false;
+            vSuccess = false;
+            vLastMessage = "MauiLogin.SubmitMaui: Server không trả dữ liệu ("+ _subLastMessage + ")";
+            return (vSuccess, vLastMessage);
         }
 
+        // 5. Phân tích kết quả JSON trả về
         string errorNum;
         string errorDesc;
         DataSet dsSet;
@@ -266,28 +369,31 @@ public class ClsConnService
 
         if (!ClienJsonParse(responseStr, out errorNum, out errorDesc, out dsSet, out error))
         {
-            mLastMessage = "MauiLogin.ClienJsonParse: " + error;
-            return false;
+            vSuccess = false;
+            vLastMessage = "MauiLogin.ClienJsonParse: " + error;
+            return (vSuccess, vLastMessage);
         }
 
+        // 6. Xử lý logic gán dữ liệu sau khi Parse thành công
         long errCode;
 
         if (!string.IsNullOrEmpty(errorNum) && long.TryParse(errorNum, out errCode) && errCode == 200 && dsSet != null && dsSet.Tables.Contains("Parameter") && dsSet.Tables["Parameter"].Rows.Count == 1)
         {
             DataTable tbl = dsSet.Tables["Parameter"];
             mSecurityCode = tbl.Rows[0]["SecurityCode"].ToString();
+
             if (tbl.Columns.Contains("AppType") == true && tbl.Rows[0]["AppType"] != DBNull.Value && tbl.Rows[0]["AppType"] != null)
             {
-                // Chuyển sang long rồi ép kiểu (cast) trực tiếp về PhoneAppTypeEnum
                 long appTypeValue = Convert.ToInt64(tbl.Rows[0]["AppType"]);
                 AppSettings.AppType = (long)appTypeValue;
             }
             else
             {
-                // Mặc định nếu dữ liệu bị null                
                 AppSettings.AppType = (long)PhoneAppTypeEnum.KhachHang;
             }
+
             string _Str; long _Long;
+
             if (tbl.Columns.Contains("DeviceRecord") == true && tbl.Rows[0]["DeviceRecord"] != DBNull.Value && tbl.Rows[0]["DeviceRecord"] != null)
             {
                 _Str = Convert.ToString(tbl.Rows[0]["DeviceRecord"]);
@@ -378,83 +484,234 @@ public class ClsConnService
                 _Str = Convert.ToString(tbl.Rows[0]["PathHost"]);
                 AppSettings.PathHost = _Str;
             }
-            mLastMessage = "";
-            return true;
+
+            // Đăng nhập thành công
+            vSuccess = true;
+            vLastMessage = "";
+            return (vSuccess, vLastMessage);
         }
         else
         {
-            mLastMessage = "MauiLogin.ClienJsonParse: ErrorNumber=" + errorNum + ", ErrorDescript=" + errorDesc;
-            return false;
+            vSuccess = false;
+            vLastMessage = "MauiLogin.ClienJsonParse: ErrorNumber=" + errorNum + ", ErrorDescript=" + errorDesc;
+            return (vSuccess, vLastMessage);
         }
     }
-
-    /// <summary>Đồng bộ khách hàng</summary>
-    public async Task<DataTable> MauiCustomerAsync()
+    /// <summary>Hàm mới, sử dụng HttpClient (Bắt buộc khai báo android:usesCleartextTraffic="true" trong AndroidManifest.xml)</summary>
+    private async Task<(string _Result, string _LastMessage)> SubmitMauiAsync(string mTrueUrlService, string jsonPost)
     {
-        mLastMessage = "";
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        string vResult = "";
+        string vLastMessage = "";
 
-        //Chuẩn bị dữ liệu POST CustomerAsync        
+        if (string.IsNullOrEmpty(jsonPost))
+        {
+            vResult = "";
+            vLastMessage = "SubmitMaui: JSON POST rỗng";
+            return (vResult, vLastMessage);
+        }
+
+        if (string.IsNullOrEmpty(mTrueUrlService))
+        {
+            vResult = "";
+            vLastMessage = "SubmitMaui: URL rỗng";
+            return (vResult, vLastMessage);
+        }
+
+        try
+        {
+            // 1. Chuẩn hóa URL
+            int nReaden = mTrueUrlService.IndexOf('?');
+            if (nReaden >= 0)
+            {
+                mTrueUrlService = mTrueUrlService.Substring(0, nReaden);
+            }
+            mTrueUrlService = mTrueUrlService.TrimEnd('/');
+            string mUrl = mTrueUrlService + "/SubmitMaui";
+
+            // 2. Thiết lập Timeout
+            int nTimeoutSeconds = mSoapTimeOut > 0 ? mSoapTimeOut : 10;
+
+            // 3. HttpClientHandler
+            using (HttpClientHandler handler = new HttpClientHandler())
+            {
+                // Nếu Server có trả gzip/deflate thì HttpClient tự giải nén.
+                handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
+                // Giữ hành vi gần giống HttpWebRequest vb.net
+                handler.AllowAutoRedirect = true;
+                // Không sử dụng Cookie của HttpClient này.
+                handler.UseCookies = false;
+
+                // 4. HttpClient
+                using (HttpClient client = new HttpClient(handler))
+                {
+                    client.Timeout = TimeSpan.FromSeconds(nTimeoutSeconds);
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("BI.Application");
+
+                    // 5. Tạo POST Content
+                    using (StringContent content = new StringContent(jsonPost, System.Text.Encoding.UTF8, "application/json"))
+                    {
+                        using (HttpResponseMessage response = await client.PostAsync(mUrl, content))
+                        {
+                            // 7. Kiểm tra HTTP Status
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                string errorBody = "";
+                                try
+                                {
+                                    errorBody = await response.Content.ReadAsStringAsync();
+                                }
+                                catch
+                                {
+                                }
+
+                                vResult = "";
+                                vLastMessage = "SubmitMaui HTTP Error: " + ((int)response.StatusCode).ToString() + " " + response.ReasonPhrase;
+                                if (!string.IsNullOrEmpty(errorBody))
+                                {
+                                    vLastMessage += " | Response=" + errorBody;
+                                }
+                                return (vResult, vLastMessage);
+                            }
+
+                            // 10. Đọc toàn bộ Response (không tự ReadAsync từng block nữa)
+                            string result = await response.Content.ReadAsStringAsync();
+
+                            // 11. Kiểm tra kết quả
+                            if (string.IsNullOrEmpty(result))
+                            {
+                                vResult = "";
+                                vLastMessage = "SubmitMaui: Server trả body rỗng";
+                                return (vResult, vLastMessage);
+                            }
+
+                            // 12. Log kích thước Response
+                            int resultUtf8Length = System.Text.Encoding.UTF8.GetByteCount(result);
+
+                            // 14. Thành công
+                            vResult = result;
+                            vLastMessage = "";
+                            return (vResult, vLastMessage);
+                        }
+                    }
+                }
+            }
+        }
+        catch (TaskCanceledException ex)
+        {
+            vResult = "";
+            vLastMessage = "SubmitMaui HttpClient Timeout/Canceled: " + ex.ToString();
+            LogWriter.WriteLine(vLastMessage);
+            return (vResult, vLastMessage);
+        }
+        catch (HttpRequestException ex)
+        {
+            vResult = "";
+            vLastMessage = "SubmitMaui HttpClient RequestException: " + ex.ToString();
+            LogWriter.WriteLine(vLastMessage);
+            return (vResult, vLastMessage);
+        }
+        catch (Exception ex)
+        {
+            vResult = "";
+            vLastMessage = "SubmitMaui HttpClient Exception: " + ex.ToString();
+            LogWriter.WriteLine(vLastMessage);
+            return (vResult, vLastMessage);
+        }
+    }
+    /// <summary>Đồng bộ khách hàng</summary>
+    public async Task<(DataTable _Data, string _LastMessage)> MauiCustomerAsync()
+    {
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        DataTable vTableResult = null;
+        string vLastMessage = "";
+
+        // 2. Chuẩn bị dữ liệu POST CustomerAsync        
         DataTable mTblParameter = new DataTable("Parameter");
         mTblParameter.Columns.Add("SecurityCode", typeof(System.String));
         mTblParameter.Columns.Add("DtID", typeof(System.String));
         mTblParameter.Columns.Add("NgayCn", typeof(System.String));
         mTblParameter.Rows.Add(mSecurityCode, AppSettings.DoiTuongSync_DtID, AppSettings.DoiTuongSync_NgayCn);
+
         DataSet _DsSet = new DataSet();
         _DsSet.Tables.Add(mTblParameter);
 
-        //Chuyển đổi thành JSON khi POST lên
-        string mDataPost = ClienJsonPOST(SecurityCode, "MauiCustomer", _DsSet);
+        // 3. Chuyển đổi thành JSON khi POST lên
+        string _subLastMessage = "";
+        string mDataPost = "";
+        (mDataPost, _subLastMessage) = ClienJsonPOST(SecurityCode, "MauiCustomer", _DsSet);
         if (string.IsNullOrEmpty(mDataPost))
         {
-            mLastMessage = "MauiCustomerAsync: ClienJsonPOST trả về rỗng.";
-            LogWriter.WriteLine(mLastMessage);
-            return null;
+            vLastMessage = "MauiCustomerAsync: ClienJsonPOST trả về rỗng ("+ _subLastMessage + ")";
+            LogWriter.WriteLine(vLastMessage);
+            return (null, vLastMessage);
         }
 
-        //Gọi POST
-        string mStr = await SubmitMauiAsync(mUrlTrueService, mDataPost);
+        // 4. Gọi POST
+        _subLastMessage = "";
+        string mStr = "";
+        (mStr,_subLastMessage) = await SubmitMauiAsync(mUrlTrueService, mDataPost);
         if (string.IsNullOrEmpty(mStr))
         {
-            mLastMessage = "MauiCustomerAsync: SubmitMauiAsync trả về rỗng. " + mLastMessage;
-            LogWriter.WriteLine(mLastMessage);
-            return null;
+            vLastMessage = "MauiCustomerAsync: SubmitMauiAsync trả về rỗng ("+ _subLastMessage + ")";
+            LogWriter.WriteLine(vLastMessage);
+            return (null, vLastMessage);
         }
 
-        //Phân tích JSON trả về
+        // 5. Phân tích JSON trả về
         string mErrorNum = "";
         string mErrorDesc = "";
         DataSet mDsReturn = null;
         string mError = "";
         bool mParseOK = ClienJsonParse(mStr, out mErrorNum, out mErrorDesc, out mDsReturn, out mError);
-        if (mParseOK == false)
+        if (!mParseOK)
         {
-            mLastMessage = "MauiCustomerAsync: ClienJsonParse lỗi. " + mError;
-            LogWriter.WriteLine(mLastMessage);
-            return null;
+            vLastMessage = "MauiCustomerAsync: ClienJsonParse lỗi. " + mError;
+            LogWriter.WriteLine(vLastMessage);
+            return (null, vLastMessage);
         }
 
-        //Kiểm tra lỗi trả về
+        // 6. Kiểm tra mã lỗi trả về
         int xErrorCode = -1;
         int.TryParse(mErrorNum, out xErrorCode);
-        if (xErrorCode != 200) return null;
-        if (mDsReturn == null) return null;
-        if (mDsReturn.Tables.Contains("DoiTuong") == false) return null;
+        if (xErrorCode != 200)
+        {
+            vLastMessage = $"MauiCustomerAsync: Máy chủ trả về mã lỗi [{mErrorNum}] - {mErrorDesc}";
+            LogWriter.WriteLine(vLastMessage);
+            return (null, vLastMessage);
+        }
 
-        //Đọc dữ liệu trả về
+        if (mDsReturn == null || !mDsReturn.Tables.Contains("DoiTuong"))
+        {
+            vLastMessage = "MauiCustomerAsync: Dữ liệu trả về không chứa bảng [DoiTuong].";
+            LogWriter.WriteLine(vLastMessage);
+            return (null, vLastMessage);
+        }
+
+        // 7. Đọc dữ liệu trả về
         DataTable mTbl = mDsReturn.Tables["DoiTuong"];
-        if (mTbl == null || mTbl.Rows.Count == 0) return null;
+        if (mTbl == null || mTbl.Rows.Count == 0)
+        {
+            vLastMessage = "MauiCustomerAsync: Bảng [DoiTuong] không có dữ liệu.";
+            return (null, vLastMessage);
+        }
+
         DataRow[] mRows = mTbl.Select("", "NgayCn ASC, DtID ASC");
         if (mRows.Length > 0)
         {
-            //Đánh dấu để lấy page tiếp theo, dựa vào (mDtID,mNgayCn) trang hiện tại
+            // Đánh dấu để lấy page tiếp theo, dựa vào (mDtID, mNgayCn) trang hiện tại
             AppSettings.DoiTuongSync_DtID = Convert.ToInt64(mRows[mRows.Length - 1]["DtID"]);
             AppSettings.DoiTuongSync_NgayCn = Convert.ToDouble(mRows[mRows.Length - 1]["NgayCn"]);
-            return mTbl.Copy();
+
+            vTableResult = mTbl.Copy();
+            vLastMessage = ""; // Thành công
+            return (vTableResult, vLastMessage);
         }
         else
         {
-            //Không còn dữ liệu
-            return null;
+            // Không còn dữ liệu
+            vLastMessage = "MauiCustomerAsync: Không có bản ghi nào hợp lệ sau khi sắp xếp.";
+            return (null, vLastMessage);
         }
     }
 
@@ -549,25 +806,100 @@ public class ClsConnService
         {
             dsSet = null;
             errorNumber = "";
-            errorDescript = "";
-            mLastMessage = ex.ToString();
+            errorDescript = "";            
             error = ex.ToString();
             return false;
         }
     }
 
-    public string ClienJsonPOST(string securityCode, string functionName)
+    public (string _JsonResult, string _LastMessage) ClienJsonPOST(string securityCode, string functionName)
     {
-        return ClienJsonPOST(securityCode, functionName, null);
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        string vJsonResult = "";
+        string vLastMessage = "";
+        (vJsonResult, vLastMessage) = ClienJsonPOST(securityCode, functionName, null);
+        return (vJsonResult, vLastMessage);
     }
 
-    public string ClienJsonPOST(string securityCode, string functionName, DataSet dsSet)
+    //public string ClienJsonPOST(string securityCode, string functionName, DataSet dsSet)
+    //{
+    //    try
+    //    {
+    //        JObject root = new JObject();
+    //        root.Add("SecurityCode", securityCode);
+    //        root.Add("FunctionName", functionName);
+    //        if (dsSet != null && dsSet.Tables.Count > 0)
+    //        {
+    //            JObject dataObj = new JObject();
+    //            int tableIndex = 1;
+
+    //            foreach (DataTable table in dsSet.Tables)
+    //            {
+    //                JArray rowsArray = new JArray();
+
+    //                foreach (DataRow row in table.Rows)
+    //                {
+    //                    JObject rowObj = new JObject();
+    //                    foreach (DataColumn col in table.Columns)
+    //                    {
+    //                        object val = row[col];
+    //                        string strVal = string.Empty;
+    //                        if (val != DBNull.Value &&
+    //                            val != null)
+    //                        {
+    //                            DateTime dateTimeVal;
+
+    //                            if (val is DateTime)
+    //                            {
+    //                                dateTimeVal = (DateTime)val;
+
+    //                                strVal = dateTimeVal.ToString("yyyy-MM-dd HH:mm:ss");
+    //                            }
+    //                            else
+    //                            {
+    //                                strVal = val.ToString();
+    //                            }
+    //                        }
+    //                        rowObj.Add(col.ColumnName, strVal);
+    //                    }
+    //                    rowsArray.Add(rowObj);
+    //                }
+
+    //                string tableName = table.TableName;
+    //                if (string.IsNullOrEmpty(tableName))
+    //                {
+    //                    tableName = "Table" + tableIndex.ToString();
+    //                    tableIndex++;
+    //                }
+    //                dataObj.Add(tableName, rowsArray);
+    //            }
+    //            root.Add("data", dataObj);
+    //        }
+    //        else
+    //        {
+    //            root.Add("data", JValue.CreateNull());
+    //        }
+    //        return root.ToString(Newtonsoft.Json.Formatting.None);
+    //    }
+    //    catch (Exception ex)
+    //    {   
+    //        return "";
+    //    }
+    //}
+
+    /// <summary>Hàm mới, sử dụng HttpClient (Bắt buộc khai báo android:usesCleartextTraffic="true" trong AndroidManifest.xml)</summary>
+    public (string _JsonResult, string _LastMessage) ClienJsonPOST(string securityCode, string functionName, DataSet dsSet)
     {
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        string vJsonResult = "";
+        string vLastMessage = "";
+
         try
         {
             JObject root = new JObject();
             root.Add("SecurityCode", securityCode);
             root.Add("FunctionName", functionName);
+
             if (dsSet != null && dsSet.Tables.Count > 0)
             {
                 JObject dataObj = new JObject();
@@ -580,19 +912,16 @@ public class ClsConnService
                     foreach (DataRow row in table.Rows)
                     {
                         JObject rowObj = new JObject();
+
                         foreach (DataColumn col in table.Columns)
                         {
                             object val = row[col];
                             string strVal = string.Empty;
-                            if (val != DBNull.Value &&
-                                val != null)
+
+                            if (val != DBNull.Value && val != null)
                             {
-                                DateTime dateTimeVal;
-
-                                if (val is DateTime)
+                                if (val is DateTime dateTimeVal)
                                 {
-                                    dateTimeVal = (DateTime)val;
-
                                     strVal = dateTimeVal.ToString("yyyy-MM-dd HH:mm:ss");
                                 }
                                 else
@@ -600,8 +929,10 @@ public class ClsConnService
                                     strVal = val.ToString();
                                 }
                             }
+
                             rowObj.Add(col.ColumnName, strVal);
                         }
+
                         rowsArray.Add(rowObj);
                     }
 
@@ -611,135 +942,55 @@ public class ClsConnService
                         tableName = "Table" + tableIndex.ToString();
                         tableIndex++;
                     }
+
                     dataObj.Add(tableName, rowsArray);
                 }
+
                 root.Add("data", dataObj);
             }
             else
             {
                 root.Add("data", JValue.CreateNull());
             }
-            return root.ToString(Newtonsoft.Json.Formatting.None);
+
+            // Tạo chuỗi JSON thành công
+            vJsonResult = root.ToString(Newtonsoft.Json.Formatting.None);
+            vLastMessage = "";
+            return (vJsonResult, vLastMessage);
         }
         catch (Exception ex)
         {
-            mLastMessage = ex.ToString();
-            return "";
-        }
-    }
-
-    /// <summary>Hàm mới, sử dụng HttpClient (Bắt buộc khai báo android:usesCleartextTraffic="true" trong AndroidManifest.xml)</summary>
-    private async Task<string> SubmitMauiAsync(string mTrueUrlService, string jsonPost)
-    {
-        mLastMessage = "";
-
-        if (string.IsNullOrEmpty(jsonPost))
-        {
-            mLastMessage = "SubmitMaui: JSON POST rỗng";
-            return "";
-        }
-        if (string.IsNullOrEmpty(mTrueUrlService))
-        {
-            mLastMessage = "SubmitMaui: URL rỗng";
-            return "";
-        }
-        try
-        {
-            // 1. Chuẩn hóa URL
-            int nReaden = mTrueUrlService.IndexOf('?');
-            if (nReaden >= 0)
-            {
-                mTrueUrlService = mTrueUrlService.Substring(0, nReaden);
-            }
-            mTrueUrlService = mTrueUrlService.TrimEnd('/');
-            string mUrl = mTrueUrlService + "/SubmitMaui";
-            // 2. Thiết lập Timeout
-            int nTimeoutSeconds = mSoapTimeOut > 0 ? mSoapTimeOut : 10;
-            // 3. HttpClientHandler
-            using (HttpClientHandler handler = new HttpClientHandler())
-            {
-                // Nếu Server có trả gzip/deflate thì HttpClient tự giải nén.
-                handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
-                // Giữ hành vi gần giống HttpWebRequest vb.net
-                handler.AllowAutoRedirect = true;
-                // Không sử dụng Cookie của HttpClient này.
-                handler.UseCookies = false;
-                // 4. HttpClient
-                using (HttpClient client = new HttpClient(handler))
-                {
-                    client.Timeout = TimeSpan.FromSeconds(nTimeoutSeconds);
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("BI.Application");
-                    // 5. Tạo POST Content
-                    using (StringContent content = new StringContent(jsonPost, System.Text.Encoding.UTF8, "application/json"))
-                    {
-                        using (HttpResponseMessage response = await client.PostAsync(mUrl, content))
-                        {
-                            // 7. Kiểm tra HTTP Status
-                            if (!response.IsSuccessStatusCode)
-                            {
-                                string errorBody = "";
-                                try
-                                {
-                                    errorBody = await response.Content.ReadAsStringAsync();
-                                }
-                                catch
-                                {
-                                }
-                                mLastMessage = "SubmitMaui HTTP Error: " + ((int)response.StatusCode).ToString() + " " + response.ReasonPhrase;
-                                if (!string.IsNullOrEmpty(errorBody))
-                                {
-                                    mLastMessage += " | Response=" + errorBody;
-                                }
-                                return "";
-                            }
-                            // 10. Đọc toàn bộ Response Không tự ReadAsync từng block nữa.
-                            string result = await response.Content.ReadAsStringAsync();
-                            // 11. Kiểm tra kết quả
-                            if (string.IsNullOrEmpty(result))
-                            {
-                                mLastMessage = "SubmitMaui: Server trả body rỗng";
-                                return "";
-                            }
-                            // 12. Log kích thước Response
-                            int resultUtf8Length = System.Text.Encoding.UTF8.GetByteCount(result);
-                            // 14. Thành công
-                            mLastMessage = "";
-                            return result;
-                        }
-                    }
-                }
-            }
-        }
-        catch (TaskCanceledException ex)
-        {
-            mLastMessage = "SubmitMaui HttpClient Timeout/Canceled: " + ex.ToString();
-            LogWriter.WriteLine(mLastMessage);
-            return "";
-        }
-        catch (HttpRequestException ex)
-        {
-            mLastMessage = "SubmitMaui HttpClient RequestException: " + ex.ToString();
-            LogWriter.WriteLine(mLastMessage);
-            return "";
-        }
-        catch (Exception ex)
-        {
-            mLastMessage = "SubmitMaui HttpClient Exception: " + ex.ToString();
-            LogWriter.WriteLine(mLastMessage);
-            return "";
+            // Ghi lại toàn bộ Exception cho hàm cha sử dụng
+            vJsonResult = "";
+            vLastMessage = "ClienJsonPOST Exception: " + ex.Message;
+            return (vJsonResult, vLastMessage);
         }
     }
 
     /// <summary>
     /// Async kiểm tra URL khả dụng bằng HttpClient (Đã xử lý triệt để NetworkOnMainThreadException).
     /// </summary>
-    private async Task<bool> UrlAvailableCheckAsync(string url, int timeoutInSecond = 10)
+    private async Task<(bool _Success, string _LastMessage)> UrlAvailableCheckAsync(string url, int timeoutInSecond = 10)
     {
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        bool vSuccess = false;
+        string vLastMessage = "";
+
+        // 2. Kiểm tra điều kiện đầu vào
         if (string.IsNullOrWhiteSpace(url))
-            return false;
-        if (timeoutInSecond <= 0) timeoutInSecond = 10;
-        // Đẩy toàn bộ tác vụ mạng ra Background Thread để tránh crash trên Android UI Thread
-        return await Task.Run(async () =>
+        {
+            vSuccess = false;
+            vLastMessage = "Thiếu tham số url cần kiểm tra khả dụng";
+            return (vSuccess, vLastMessage);
+        }
+
+        if (timeoutInSecond <= 0)
+        {
+            timeoutInSecond = 10;
+        }
+
+        // 3. Thực thi Task.Run và return thoát ngay lập tức khi có kết quả (giống code gốc)
+        (vSuccess, vLastMessage) = await Task.Run(async () =>
         {
             try
             {
@@ -747,6 +998,7 @@ public class ClsConnService
                 {
                     // Bỏ qua kiểm tra chứng chỉ SSL
                     handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+
                     using (var client = new HttpClient(handler))
                     {
                         client.Timeout = TimeSpan.FromSeconds(timeoutInSecond);
@@ -758,20 +1010,34 @@ public class ClsConnService
                         using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
                         {
                             int status = (int)response.StatusCode;
-                            return status >= 100 && status < 400;
+                            bool isAvailable = status >= 100 && status < 400;
+
+                            // THOÁT NGAY LẬP TỨC (hệt như return ở code gốc)
+                            if (isAvailable)
+                            {
+                                return (true, "");
+                            }
+                            else
+                            {
+                                return (false, $"UrlAvailableCheck HTTP Status: {status}");
+                            }
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                mLastMessage = $"UrlAvailableCheck Exception: {ex.Message}";
-                LogWriter.WriteLine(mLastMessage);
-                return false;
+                string errMsg = $"UrlAvailableCheck Exception: {ex.Message}";
+                LogWriter.WriteLine(errMsg);
+
+                // THOÁT NGAY LẬP TỨC KHI CÓ EXCEPTION
+                return (false, errMsg);
             }
         }).ConfigureAwait(false);
-    }
 
+        // 4. Trả về kết quả cuối cùng
+        return (vSuccess, vLastMessage);
+    }
     /// <summary>Thức giấc chỉ được gọi từ CallBroadcastReceiver=>AgentService=>LoadSecureStorage (Để Post API)</summary>
     public async Task<bool> LoadByWakeup()
     {
