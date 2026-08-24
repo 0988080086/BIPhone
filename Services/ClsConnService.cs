@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
+namespace BIPhone;
 public class ClsConnService
 {
     private const string mRedirectUrl = "http://www.vnbis.com.vn/biservice/bimaui.asmx";
@@ -22,6 +23,8 @@ public class ClsConnService
     private string mUserName;
     private string mUserPass;
     private string mSecurityCode;
+    private readonly HttpClientHandler _httpHandler;
+    private readonly HttpClient _httpClient;
 
     private static readonly ClsConnService _instance = new ClsConnService();
 
@@ -40,6 +43,17 @@ public class ClsConnService
         mUserName = "";
         mUserPass = "";
         mSecurityCode = "";
+
+        //Khai báo một _httpClient duy nhất
+        _httpHandler = new HttpClientHandler
+        {
+            // Tối ưu bỏ qua kiểm tra SSL nếu dùng IP local/tự ký
+            ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+        };
+        _httpClient = new HttpClient(_httpHandler)
+        {
+            Timeout = TimeSpan.FromSeconds(10) // Single Timeout cố định
+        };
     }
 
     public ClsConnService Clone()
