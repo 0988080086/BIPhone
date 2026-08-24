@@ -67,12 +67,13 @@ public partial class LoginPage : ContentPage
         if (mBusy)
             return false;
         mBusy = true;
-
+        string _LastMessage = "";
+        bool ok = false;
         //RedirectAvailable
-        bool ok = await mConnService.RedirectAvailableGetAsync(30);
+        (ok,_LastMessage) = await mConnService.RedirectAvailableGetAsync(30);
         if (!ok)
         {
-            lblMessage.Text = "Không kết nối được máy chủ Redirect.\n" + mConnService.LastMessage;
+            lblMessage.Text = "Không kết nối được máy chủ Redirect.\n" + _LastMessage;
             mBusy = false;
             return false;
         }
@@ -86,7 +87,9 @@ public partial class LoginPage : ContentPage
         mConnService.RedirectUserName = txtRedirectName.Text;
         mConnService.RedirectUserPass = txtRedirectPass.Text;
         mConnService.SoapTimeOut = 30;
-        bool _Redirect = await mConnService.MauiRedirectAsync();
+        bool _Redirect = false;
+        _LastMessage = "";
+        (_Redirect,_LastMessage) = await mConnService.MauiRedirectAsync();
         if (_Redirect == true && mConnService.UrlTrueService != null)
         {
             lblMessage.Text = "Đã xác định máy chủ";
@@ -94,7 +97,7 @@ public partial class LoginPage : ContentPage
         }
         else
         {
-            lblMessage.Text = "Máy chủ redirect không phản hồi \n" + mConnService.LastMessage;
+            lblMessage.Text = "Máy chủ redirect không phản hồi \n" + _LastMessage;
             lblTrueService.Text = "";
             mBusy =false;
             return false;
@@ -103,10 +106,12 @@ public partial class LoginPage : ContentPage
         // MauiLogin
         mConnService.UserName = txtUserName.Text;
         mConnService.UserPass = txtUserPass.Text;
-        bool _Login = await mConnService.MauiLoginAsync();
+        bool _Login = false;
+        _LastMessage = "";
+        (_Login,_LastMessage) = await mConnService.MauiLoginAsync();
         if (!_Login)
         {
-            lblMessage.Text = "Lỗi đăng nhập \n" + mConnService.LastMessage;
+            lblMessage.Text = "Lỗi đăng nhập \n" + _LastMessage;
             mBusy = false;
             return false;
         }
@@ -159,12 +164,14 @@ public partial class LoginPage : ContentPage
         }
 
         lblMessage.Text = "Đang đăng nhập khách guest";
-        
+
         //RedirectAvailable
-        bool ok = await mConnService.RedirectAvailableGetAsync(30);
-        if (!ok)
+        bool _Ok = false;
+        string _LastMessage = "";
+        (_Ok,_LastMessage) = await mConnService.RedirectAvailableGetAsync(30);
+        if (!_Ok)
         {
-            lblMessage.Text = "Không kết nối được máy chủ Redirect.\n" + mConnService.LastMessage;
+            lblMessage.Text = "Không kết nối được máy chủ Redirect.\n" + _LastMessage;
             mBusy = false;
             return;
         }
@@ -178,7 +185,9 @@ public partial class LoginPage : ContentPage
         mConnService.RedirectUserName = txtRedirectName.Text;
         mConnService.RedirectUserPass = txtRedirectPass.Text;
         mConnService.SoapTimeOut = 30;
-        bool _Redirect = await mConnService.MauiRedirectAsync();
+        bool _Redirect = false;
+        _LastMessage = "";
+        (_Redirect,_LastMessage) = await mConnService.MauiRedirectAsync();
         if (_Redirect == true && mConnService.UrlTrueService != null)
         {
             lblMessage.Text = "Đã xác định máy chủ";
@@ -186,7 +195,7 @@ public partial class LoginPage : ContentPage
         }
         else
         {
-            lblMessage.Text = "Máy chủ redirect không phản hồi \n" + mConnService.LastMessage;
+            lblMessage.Text = "Máy chủ redirect không phản hồi \n" + _LastMessage;
             mBusy = false;
             return;
         }
@@ -195,10 +204,12 @@ public partial class LoginPage : ContentPage
         txtUserPass.Text = "12345";
         mConnService.UserName = txtUserName.Text;
         mConnService.UserPass = txtUserPass.Text;
-        bool _Login = await mConnService.MauiLoginAsync();
+        bool _Login = false;
+        _LastMessage = "";
+        (_Login,_LastMessage) = await mConnService.MauiLoginAsync();
         if (!_Login)
         {
-            lblMessage.Text = "MauiLogin lỗi.\n" + mConnService.LastMessage;
+            lblMessage.Text = "MauiLogin lỗi.\n" + _LastMessage;
             mBusy = false;
             return;
         }

@@ -137,15 +137,15 @@ public partial class MainPage
         _DtSyncning = true;
         mConnService = ClsConnService.Instance;
         int mCount = 0; DataTable mTblKh = null; int mPage = 0;
-
+        string _LastMessage = "";
         try
         {
             bool continueSync = true;
             while (continueSync)
             {
                 mPage++;
-                lblTongKhachHang.Text = $"Đang tải trang {mPage}...";
-                mTblKh = await mConnService.MauiCustomerAsync();
+                lblTongKhachHang.Text = $"Đang tải trang {mPage}...";                
+                (mTblKh,_LastMessage) = await mConnService.MauiCustomerAsync();
                 if (mTblKh != null && mTblKh.Rows.Count > 0)
                 {
                     mCount += mTblKh.Rows.Count;

@@ -102,18 +102,18 @@ public partial class MainPage : ContentPage, IEventsReceiver
 
         // Khởi tạo kết nối
         mConnService = ClsConnService.Instance;
-        await ClsConnService.Instance.LoadByAppStartup();
-
+        ClsConnService.Instance.LoadByAppStartup();
+        string _LastMessage = "";
         bool _OK = false;
         if (AppSettings.LoginRememberAccount == true && AppSettings.LoginRememberAutoLogin == true && !string.IsNullOrEmpty(mConnService.RedirectCode) && !string.IsNullOrEmpty(mConnService.RedirectUserName) && !string.IsNullOrEmpty(mConnService.RedirectUserName) && !string.IsNullOrEmpty(mConnService.UserName) && !string.IsNullOrEmpty(mConnService.UserPass))
         {
-            _OK = await mConnService.RedirectAvailableGetAsync();
+            (_OK, _LastMessage) = await mConnService.RedirectAvailableGetAsync();
             if (_OK == true)
             {
-                _OK = await mConnService.MauiRedirectAsync();
+                (_OK, _LastMessage) = await mConnService.MauiRedirectAsync();
                 if (_OK == true)
                 {
-                    _OK = await mConnService.MauiLoginAsync();
+                    (_OK, _LastMessage) = await mConnService.MauiLoginAsync();
                 }
             }
         }
