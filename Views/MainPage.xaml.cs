@@ -43,8 +43,8 @@ public partial class MainPage : ContentPage, IEventsReceiver
 
         // 3. Ẩn tab Sản phẩm (false) và Công việc (false)
         ConfigureVisibleTabs(
-            showDashboard: false,
-            showProduct: false,
+            showDashboard: true,
+            showProduct: true,
             showCall: true,
             showOrder: true,
             showTask: true,
@@ -177,7 +177,8 @@ public partial class MainPage : ContentPage, IEventsReceiver
         DashboardContent.IsVisible = false;
         ProductContent.IsVisible = false;
         CallContent.IsVisible = false;
-        OrderContent.IsVisible = false;
+        GridOrderContent.IsVisible = false;
+        //CvDonHangList.IsVisible = false;
         TaskContent.IsVisible = false;
         AccountContent.IsVisible = false;
 
@@ -198,7 +199,7 @@ public partial class MainPage : ContentPage, IEventsReceiver
                 break;
 
             case MainTab.Order:
-                OrderContent.IsVisible = true;
+                GridOrderContent.IsVisible = true;
                 break;
 
             case MainTab.Task:
@@ -216,37 +217,41 @@ public partial class MainPage : ContentPage, IEventsReceiver
     // =====================================================
     private void OnTabDashboardClicked(object sender, EventArgs e)
     {
-        SelectFooterTab(0, lblIconDashboard, lblTextDashboard);
+        SelectFooterTab(lblIconDashboard, lblTextDashboard);
         ShowTab(MainTab.Dashboard);
     }
 
     private void OnTabProductClicked(object sender, EventArgs e)
     {
-        SelectFooterTab(1, lblIconProduct, lblTextProduct);
+        SelectFooterTab(lblIconProduct, lblTextProduct);
         ShowTab(MainTab.Product);
     }
 
     private void OnTabCallClicked(object sender, EventArgs e)
     {
-        SelectFooterTab(2, lblIconCall, lblTextCall);
+        SelectFooterTab(lblIconCall, lblTextCall);
         ShowTab(MainTab.Call);
     }
 
-    private void OnTabOrderClicked(object sender, EventArgs e)
+    private async void OnTabOrderClicked(object sender, EventArgs e)
     {
-        SelectFooterTab(3, lblIconOrder, lblTextOrder);
+        // 1. Chuyển UI tab ngay lập tức để ứng dụng phản hồi nhanh
+        SelectFooterTab(lblIconOrder, lblTextOrder);
         ShowTab(MainTab.Order);
+
+        // 2. Gọi tải dữ liệu bất đồng bộ sau khi UI đã đổi tab xong
+        await LoadDanhSachDonHangAsync();
     }
 
     private void OnTabTaskClicked(object sender, EventArgs e)
     {
-        SelectFooterTab(4, lblIconTask, lblTextTask);
+        SelectFooterTab(lblIconTask, lblTextTask);
         ShowTab(MainTab.Task);
     }
 
     private void OnTabAccountClicked(object sender, EventArgs e)
     {
-        SelectFooterTab(5, lblIconAccount, lblTextAccount);
+        SelectFooterTab(lblIconAccount, lblTextAccount);
         ShowTab(MainTab.Account);
     }
 
@@ -277,23 +282,6 @@ public partial class MainPage : ContentPage, IEventsReceiver
 
     // Bỏ tham số tabIndex không cần thiết ở hàm này
     private void SelectFooterTab(Label activeIcon, Label activeText)
-    {
-        ResetTabStyle(lblIconDashboard, lblTextDashboard);
-        ResetTabStyle(lblIconProduct, lblTextProduct);
-        ResetTabStyle(lblIconCall, lblTextCall);
-        ResetTabStyle(lblIconOrder, lblTextOrder);
-        ResetTabStyle(lblIconTask, lblTextTask);
-        ResetTabStyle(lblIconAccount, lblTextAccount);
-
-        if (activeIcon != null) activeIcon.TextColor = activeColor;
-        if (activeText != null)
-        {
-            activeText.TextColor = activeColor;
-            activeText.FontAttributes = FontAttributes.Bold;
-        }
-    }
-
-    private void SelectFooterTab(int tabIndex, Label activeIcon, Label activeText)
     {
         ResetTabStyle(lblIconDashboard, lblTextDashboard);
         ResetTabStyle(lblIconProduct, lblTextProduct);

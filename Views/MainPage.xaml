@@ -475,21 +475,131 @@
 				</RefreshView>
 			</Grid>
 
-			<!-- TAB D - ĐƠN HÀNG -->
-			<Grid x:Name="OrderContent" BackgroundColor="#F5F5F5" IsVisible="False" RowDefinitions="Auto,*">
-				<ScrollView Grid.Row="0" HorizontalScrollBarVisibility="Never" Orientation="Horizontal">
-					<HorizontalStackLayout Padding="8" Spacing="6">
-						<Button Clicked="OnOrderFilterClicked" Style="{StaticResource OrderFilterBtnStyle}" Text="Tất cả" />
-						<Button Clicked="OnOrderFilterClicked" Style="{StaticResource OrderFilterBtnStyle}" Text="Chờ lấy hàng" />
-						<Button Clicked="OnOrderFilterClicked" Style="{StaticResource OrderFilterBtnStyle}" Text="Đang giao" />
-						<Button Clicked="OnOrderFilterClicked" Style="{StaticResource OrderFilterBtnStyle}" Text="Đã giao" />
-						<Button Clicked="OnOrderFilterClicked" Style="{StaticResource OrderFilterBtnStyle}" Text="Trả hàng" />
-						<Button Clicked="OnOrderFilterClicked" Style="{StaticResource OrderFilterBtnStyle}" Text="Đã huỷ" />
-					</HorizontalStackLayout>
-				</ScrollView>
+            <!-- TAB ĐƠN HÀNG (ONLINE - TMĐT STYLE) -->
+            <Grid x:Name="CvDonHangListTab" RowDefinitions="Auto, Auto, *, Auto" IsVisible="false">
 
-				<CollectionView x:Name="cvOrders" Grid.Row="1" Margin="8" SelectionChanged="OnOrderSelected" SelectionMode="Single" />
-			</Grid>
+                <!-- 1. Thanh Tìm Kiếm & Chọn Ngày (Nhỏ gọn) -->
+                <Grid Grid.Row="0" ColumnDefinitions="*, Auto" ColumnSpacing="8" Padding="10,8,10,4">
+                    <!-- Ô nhập từ khóa -->
+                    <Border Grid.Column="0" Stroke="#CBD5E1" StrokeThickness="1" StrokeShape="RoundRectangle 8" Padding="8,0" BackgroundColor="White">
+                        <SearchBar x:Name="EntrySearchDonHang" 
+                       Placeholder="Tìm mã đơn, tên/SĐT khách..." 
+                       FontSize="13" 
+                       HeightRequest="38" 
+                       BackgroundColor="Transparent"/>
+                    </Border>
+
+                    <!-- Nút chọn khoảng thời gian (DatePicker ẩn gọn) -->
+                    <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                        <DatePicker x:Name="DpDonHangTuNgay" Format="dd/MM" FontSize="11" TextColor="#1E293B" HeightRequest="36" WidthRequest="62"/>
+                        <Label Text="-" VerticalOptions="Center" TextColor="#64748B" FontSize="12"/>
+                        <DatePicker x:Name="DpDonHangDenNgay" Format="dd/MM" FontSize="11" TextColor="#1E293B" HeightRequest="36" WidthRequest="62"/>
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <!-- 2. Thanh Filter Trạng Thái Ngang Vuốt Mượt (Chips Scrollable) -->
+                <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Padding="10,2,10,6">
+                    <HorizontalStackLayout Spacing="8">
+                        <Button x:Name="BtnFilterTatCa" Text="Tất cả" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#1E3A8A" TextColor="White"/>
+                        <Button x:Name="BtnFilterChoLay" Text="Chờ lấy hàng" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
+                        <Button x:Name="BtnFilterDangGiao" Text="Đang giao" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
+                        <Button x:Name="BtnFilterDaGiao" Text="Đã giao" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
+                        <Button x:Name="BtnFilterDaHuy" Text="Đã hủy" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
+                    </HorizontalStackLayout>
+                </ScrollView>
+
+                <!-- 3. Danh Sách Đơn Hàng (CollectionView - Đã bỏ Padding) -->
+                <Grid Grid.Row="2" Margin="10,2">
+                    <CollectionView x:Name="GridOrderContent">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="#E2E8F0" StrokeThickness="1" StrokeShape="RoundRectangle 8" Margin="0,4" Padding="10" BackgroundColor="White">
+                                    <VerticalStackLayout Spacing="6">
+
+                                        <!-- Dòng 1: Mã khách & Tên khách -->
+                                        <Grid ColumnDefinitions="Auto, *">
+                                            <Label Text="{Binding MaKhachHang}" FontAttributes="Bold" TextColor="#1E3A8A" FontSize="13"/>
+                                            <Label Grid.Column="1" Text="{Binding TenKhachHang, StringFormat=' - {0}'}" FontAttributes="Bold" TextColor="#0F172A" FontSize="13" LineBreakMode="TailTruncation"/>
+                                        </Grid>
+
+                                        <BoxView HeightRequest="1" Color="#F1F5F9"/>
+
+                                        <!-- Dòng 2: Ảnh sản phẩm đại diện + Tên sản phẩm -->
+                                        <Grid ColumnDefinitions="50, *" ColumnSpacing="10">
+                                            <Image Source="{Binding AnhSanPhamDaiDien, TargetNullValue='icon_product_placeholder.png'}" 
+                                       WidthRequest="50" HeightRequest="50" Aspect="AspectFill"/>
+                                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                                <Label Text="{Binding TenSanPhamDaiDien}" FontSize="12" FontAttributes="Bold" TextColor="#1E293B" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                                <Label Text="{Binding MoTaThemSanPham}" FontSize="11" TextColor="#64748B" IsVisible="{Binding HasMoTaThem}"/>
+                                            </VerticalStackLayout>
+                                        </Grid>
+
+                                        <BoxView HeightRequest="1" Color="#F1F5F9"/>
+
+                                        <!-- Dòng 3: Thanh toán, Đã thu, NV Giao, Tình trạng -->
+                                        <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto" RowSpacing="2">
+                                            <Label Grid.Row="0" Grid.Column="0" Text="{Binding TongTienFormatted, StringFormat='Thanh toán: {0}'}" FontSize="12" TextColor="#DC2626" FontAttributes="Bold"/>
+                                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding DaThuFormatted, StringFormat='Đã thu: {0}'}" FontSize="12" TextColor="#16A34A" FontAttributes="Bold" HorizontalOptions="End"/>
+
+                                            <Label Grid.Row="1" Grid.Column="0" Text="{Binding TenNhanVienGiao, StringFormat='NV giao: {0}'}" FontSize="11" TextColor="#475569"/>
+                                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding TenTrangThai, StringFormat='Tình trạng: {0}'}" FontSize="11" TextColor="#2563EB" FontAttributes="Bold" HorizontalOptions="End"/>
+                                        </Grid>
+
+                                        <!-- Dòng 4: Các nút chức năng (Dynamic ẩn/hiện) -->
+                                        <FlexLayout Wrap="Wrap" JustifyContent="End" AlignItems="Center" Direction="Row" Margin="0,4,0,0">
+                                            <Button Text="Tiếp nhận" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#16A34A" TextColor="White" CornerRadius="4"
+                                        IsVisible="{Binding CanTiepNhan}" Clicked="BtnTiepNhan_Clicked"/>
+
+                                            <Button Text="Hủy tiếp nhận" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#EA580C" TextColor="White" CornerRadius="4"
+                                        IsVisible="{Binding CanHuyTiepNhan}" Clicked="BtnHuyTiepNhan_Clicked"/>
+
+                                            <Button Text="Serial SP" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#0284C7" TextColor="White" CornerRadius="4"
+                                        IsVisible="{Binding CanNhapSerial}" Clicked="BtnSerial_Clicked"/>
+
+                                            <Button Text="Đã giao" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#2563EB" TextColor="White" CornerRadius="4"
+                                        IsVisible="{Binding CanDanhDauDaGiao}" Clicked="BtnDaGiao_Clicked"/>
+
+                                            <Button Text="Hủy đơn" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#DC2626" TextColor="White" CornerRadius="4"
+                                        IsVisible="{Binding CanHuyDon}" Clicked="BtnHuyDon_Clicked"/>
+                                        </FlexLayout>
+
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+
+                        <CollectionView.EmptyView>
+                            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Margin="0,40">
+                                <Label Text="Không có đơn hàng nào" TextColor="#94A3B8" FontSize="13"/>
+                            </VerticalStackLayout>
+                        </CollectionView.EmptyView>
+                    </CollectionView>
+
+                    <!-- Loading Float phía trên danh sách -->
+                    <ActivityIndicator x:Name="ActDonHangLoading" IsRunning="False" IsVisible="False" Color="#1E3A8A" HeightRequest="30" HorizontalOptions="Center" VerticalOptions="Start" Margin="0,10,0,0"/>
+                </Grid>
+
+                <!-- 4. Footer Tổng Hợp Cố Định Đáy (Đã sửa Border & StrokeThickness) -->
+                <Grid x:Name="GridFooterThongKe" Grid.Row="3" RowDefinitions="Auto, Auto" BackgroundColor="#F8FAFC">
+                    <!-- Đường vạch kẻ ngang phía trên Footer -->
+                    <BoxView Grid.Row="0" HeightRequest="1" Color="#E2E8F0"/>
+
+                    <Grid Grid.Row="1" RowDefinitions="Auto, Auto" ColumnDefinitions="*, *" Padding="12,8">
+                        <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" 
+                   Text="{Binding ThongKeSoLuongFormatted}" 
+                   FontSize="11" TextColor="#475569" LineBreakMode="TailTruncation"/>
+
+                        <Label Grid.Row="1" Grid.Column="0" 
+                   Text="{Binding TongTienHangFormatted, StringFormat='Tổng tiền: {0}'}" 
+                   FontSize="12" FontAttributes="Bold" TextColor="#DC2626"/>
+
+                        <Label Grid.Row="1" Grid.Column="1" 
+                   Text="{Binding TongDaThuFormatted, StringFormat='Tổng thu: {0}'}" 
+                   FontSize="12" FontAttributes="Bold" TextColor="#16A34A" HorizontalOptions="End"/>
+                    </Grid>
+                </Grid>
+
+            </Grid>
 
             <!-- TAB E - CÔNG VIỆC -->
             <Grid x:Name="TaskContent" RowDefinitions="Auto,*" IsVisible="False" RowSpacing="0" BackgroundColor="#F5F5F5">
