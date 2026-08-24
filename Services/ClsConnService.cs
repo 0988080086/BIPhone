@@ -715,6 +715,88 @@ public class ClsConnService
         }
     }
 
+    /// <summary>POST một cuộc gọi</summary>
+    public async Task<(bool _Posted, string _LastMessage)> MauiDienThoaiSetAsync(CrmDienThoaiItem _TelItem)
+    {
+        // 1. Khai báo biến rõ ràng ngay đầu hàm (kiểu VB.NET)
+        DataTable vTableResult = null;
+        string vLastMessage = "";
+
+        // 2. Chuẩn bị dữ liệu POST CustomerAsync        
+        DataTable mTblParameter = new DataTable("Parameter");
+        mTblParameter.Columns.Add("SecurityCode", typeof(System.String));
+        mTblParameter.Columns.Add("DienThoai", typeof(System.String));
+        mTblParameter.Columns.Add("UID", typeof(System.String));
+        mTblParameter.Rows.Add(mSecurityCode,_TelItem.DienThoai, _TelItem.UID);
+
+        DataSet _DsSet = new DataSet();
+        _DsSet.Tables.Add(mTblParameter);
+
+        // 3. Chuyển đổi dữ liệu cuộc gọi vào DataTable
+        _DsSet.Tables.Add(_TelItem.ToDataTable());
+
+        // 4. Chuyển đổi thành JSON khi POST lên
+        string _subLastMessage = "";
+        string mDataPost = "";
+        (mDataPost, _subLastMessage) = ClienJsonPOST(SecurityCode, "MauiDienThoaiSet", _DsSet);
+        if (string.IsNullOrEmpty(mDataPost))
+        {
+            vLastMessage = "MauiDienThoaiSet: ClienJsonPOST trả về rỗng (" + _subLastMessage + ")";
+            LogWriter.WriteLine(vLastMessage);
+            return (false, vLastMessage);
+        }
+
+        // 5. Gọi POST
+        _subLastMessage = "";
+        string mStr = "";
+        (mStr, _subLastMessage) = await SubmitMauiAsync(mUrlTrueService, mDataPost);
+        if (string.IsNullOrEmpty(mStr))
+        {
+            vLastMessage = "MauiDienThoaiSet: SubmitMauiAsync trả về rỗng (" + _subLastMessage + ")";
+            LogWriter.WriteLine(vLastMessage);
+            return (false, vLastMessage);
+        }
+
+        // 6. Phân tích JSON trả về
+        string mErrorNum = "";
+        string mErrorDesc = "";
+        DataSet mDsReturn = null;
+        string mError = "";
+        bool mParseOK = ClienJsonParse(mStr, out mErrorNum, out mErrorDesc, out mDsReturn, out mError);
+        if (!mParseOK)
+        {
+            vLastMessage = "MauiDienThoaiSet: ClienJsonParse lỗi. " + mError;
+            LogWriter.WriteLine(vLastMessage);
+            return (false, vLastMessage);
+        }
+
+        // 7. Kiểm tra mã lỗi trả về
+        int xErrorCode = -1;
+        int.TryParse(mErrorNum, out xErrorCode);
+        if (xErrorCode != 200)
+        {
+            vLastMessage = $"MauiDienThoaiSet: Máy chủ trả về mã lỗi [{mErrorNum}] - {mErrorDesc}";
+            LogWriter.WriteLine(vLastMessage);
+            return (false, vLastMessage);
+        }
+
+        if (mDsReturn == null || !mDsReturn.Tables.Contains("CrmDienThoai"))
+        {
+            vLastMessage = "MauiDienThoaiSet: Dữ liệu trả về không chứa bảng [CrmDienThoai].";
+            LogWriter.WriteLine(vLastMessage);
+            return (false, vLastMessage);
+        }
+
+        // 8. Đọc dữ liệu trả về
+        DataTable mTbl = mDsReturn.Tables["CrmDienThoai"];
+        if (mTbl == null || mTbl.Rows.Count == 0)
+        {
+            vLastMessage = "MauiDienThoaiSet: Bảng [CrmDienThoai] không có dữ liệu.";
+            return (false, vLastMessage);
+        }
+        return (true, "");
+    }
+
     public bool ClienJsonParse(string jsonText, out string errorNumber, out string errorDescript, out DataSet dsSet, out string error)
     {
         errorNumber = "";
