@@ -1,4 +1,5 @@
-﻿using Microsoft.Maui.Controls;
+﻿using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
 using System.Data;
 
@@ -19,7 +20,7 @@ public partial class MainPage : ContentPage, IEventsReceiver
         Product,   // Sản phẩm (Chuyển từ Home cũ sang)
         Call,      // Cuộc gọi
         Order,     // Đơn hàng
-        Task,      // Công việc
+        Serial,    // Serial hàng hoá
         Account    // Tài khoản
     }
 
@@ -39,7 +40,7 @@ public partial class MainPage : ContentPage, IEventsReceiver
         EventMessenger.Register(this);
 
         // 3. Thiết lập bàn phím cho text tìm kiếm
-        txtSearch.Keyboard = Keyboard.Text;
+        //txtSearch.Keyboard = Keyboard.Text;
 
         // 3. Ẩn tab Sản phẩm (false) và Công việc (false)
         ConfigureVisibleTabs(
@@ -125,11 +126,18 @@ public partial class MainPage : ContentPage, IEventsReceiver
         }
         else
         {
+            //Báo đã đăng nhập thành công
+            EventMessenger.Send(this, EventEnum.Logined, true);
+            // Kích hoạt đồng bộ chạy ngầm an toàn (Safe Fire-and-Forget)
+            //_ = SyncHangHoaAsync();
+
+            //Báo Cấp quyền cho Platforms
             string _RequestPermisionStr = AppSettings.RequestPermisionList;
             if (!string.IsNullOrEmpty(_RequestPermisionStr))
             {
+                
                 EventMessenger.Send(this, EventEnum.RequestPermissions, _RequestPermisionStr);
-                EventMessenger.Send(this, EventEnum.StartForeGroundService, "AgentService");
+                EventMessenger.Send(this, EventEnum.StartForeGroundService, "AgentService");                
             }
         }
 
@@ -156,14 +164,84 @@ public partial class MainPage : ContentPage, IEventsReceiver
                         UpdateCallListRealtime(item);
                     }
                     break;
+                };
+            case EventEnum.Logined:
+                {
+                    // Kích hoạt đồng bộ chạy ngầm an toàn (Safe Fire-and-Forget)
+                    //_ = SyncHangHoaAsync();
+                    break;
                 }
         }
     }
-
     protected override void OnDisappearing()
     {
         EventMessenger.Unregister(this);
         base.OnDisappearing();
+    }
+
+    // =====================================================
+    // Một số danh bạ cần đồng bộ
+    // =====================================================
+
+    public async Task SyncHangHoaAsync()
+    {
+        mConnService = ClsConnService.Instance;
+        if (mConnService.MauiLogined == false) return;
+
+        bool continueSync = true;
+        int mCount = 0;
+        DataTable mTblHh = null;
+        int mPage = 0;
+        string _LastMessage = "";
+        try
+        {
+            while (continueSync)
+            {
+                mPage++;
+                //txtSearch.Text="Đang tải hh trang " + mPage.ToString();
+                (mTblHh, _LastMessage) = await mConnService.MauiHangHoaAsync();
+                if (mTblHh != null && mTblHh.Rows.Count > 0)
+                {
+                    mCount += mTblHh.Rows.Count;
+                    var listItems = new List<HangHoaItem>();
+
+                    // Parse dữ liệu từ DataTable
+                    foreach (DataRow row in mTblHh.Rows)
+                    {
+                        var hhitem = new HangHoaItem();
+                        if (hhitem.FromDataRow(row))
+                        {
+                            listItems.Add(hhitem);
+                        }
+                    }
+
+                    // Đưa tác vụ lưu DB xuống Background Thread để tránh đơ UI
+                    await Task.Run(() =>
+                    {
+                        // Bỏ save từng item, gọi SaveRange
+                        //foreach (var item in listItems)
+                        //{
+                        //    HangHoa.Instance.Save(item);
+                        //}
+                        HangHoa.Instance.SaveRange(listItems);
+                    });
+                }
+                else
+                {
+                    continueSync = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Lỗi đồng bộ Hàng hóa: {ex.Message}");
+        }
+        finally
+        {
+            await Task.Delay(1000);
+            //txtSearch.Text = "";
+            //txtSearch.Placeholder = "Tìm kiếm sản phẩm...";
+        }
     }
 
     // =====================================================
@@ -174,36 +252,35 @@ public partial class MainPage : ContentPage, IEventsReceiver
         _currentTab = tab;
 
         // Ẩn toàn bộ nội dung các View Content
-        DashboardContent.IsVisible = false;
-        ProductContent.IsVisible = false;
-        CallContent.IsVisible = false;
-        GridOrderContent.IsVisible = false;
-        //CvDonHangList.IsVisible = false;
-        TaskContent.IsVisible = false;
+        SvDashboard.IsVisible = false;
+        GridSanPham.IsVisible = false;
+        GridCall.IsVisible = false;
+        GridGiaoHang.IsVisible = false;        
+        GridSerial.IsVisible = false;
         AccountContent.IsVisible = false;
 
         // Hiển thị TAB tương ứng được chọn
         switch (tab)
         {
             case MainTab.Dashboard:
-                DashboardContent.IsVisible = true;
+                SvDashboard.IsVisible = true;
                 LoadDashboardData(); // Gọi nạp lại dữ liệu Dashboard nếu cần
                 break;
 
             case MainTab.Product:
-                ProductContent.IsVisible = true;
+                GridSanPham.IsVisible = true;
                 break;
 
             case MainTab.Call:
-                CallContent.IsVisible = true;
+                GridCall.IsVisible = true;
                 break;
 
             case MainTab.Order:
-                GridOrderContent.IsVisible = true;
+                GridGiaoHang.IsVisible = true;
                 break;
 
-            case MainTab.Task:
-                TaskContent.IsVisible = true;
+            case MainTab.Serial:
+                GridSerial.IsVisible = true;
                 break;
 
             case MainTab.Account:
@@ -225,6 +302,8 @@ public partial class MainPage : ContentPage, IEventsReceiver
     {
         SelectFooterTab(lblIconProduct, lblTextProduct);
         ShowTab(MainTab.Product);
+
+        LoadHangHoaStartup();
     }
 
     private void OnTabCallClicked(object sender, EventArgs e)
@@ -240,13 +319,16 @@ public partial class MainPage : ContentPage, IEventsReceiver
         ShowTab(MainTab.Order);
 
         // 2. Gọi tải dữ liệu bất đồng bộ sau khi UI đã đổi tab xong
-        await LoadDanhSachDonHangAsync();
+        await LoadDanhSachGiaoHangAsync();
     }
 
-    private void OnTabTaskClicked(object sender, EventArgs e)
+    private async void OnTabSerialClicked(object sender, EventArgs e)
     {
         SelectFooterTab(lblIconTask, lblTextTask);
-        ShowTab(MainTab.Task);
+        ShowTab(MainTab.Serial);
+
+        // 2. Gọi tải dữ liệu bất đồng bộ sau khi UI đã đổi tab xong
+        await LoadDanhSachSerialAsync(true);
     }
 
     private void OnTabAccountClicked(object sender, EventArgs e)
@@ -271,7 +353,7 @@ public partial class MainPage : ContentPage, IEventsReceiver
             case MainTab.Order:
                 SelectFooterTab(lblIconOrder, lblTextOrder);
                 break;
-            case MainTab.Task:
+            case MainTab.Serial:
                 SelectFooterTab(lblIconTask, lblTextTask);
                 break;
             case MainTab.Account:
@@ -311,29 +393,29 @@ public partial class MainPage : ContentPage, IEventsReceiver
     // =====================================================
     // SEARCH
     // =====================================================
-    private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
-    {
-        string keyword = e.NewTextValue ?? "";
-        System.Diagnostics.Debug.WriteLine("Search: " + keyword);
-    }
+    //private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
+    //{
+    //    string keyword = e.NewTextValue ?? "";
+    //    System.Diagnostics.Debug.WriteLine("Search: " + keyword);
+    //}
 
     // =====================================================
     // MICRO / CART / MESSAGE / MENU
     // =====================================================
-    private async void OnMicroClicked(object sender, EventArgs e)
-    {
-        await DisplayAlert("Micro", "Sau này gọi chức năng Voice → Text / Translate.", "Đóng");
-    }
+    //private async void OnMicroClicked(object sender, EventArgs e)
+    //{
+    //    await DisplayAlert("Micro", "Sau này gọi chức năng Voice → Text / Translate.", "Đóng");
+    //}
 
-    private async void OnCartClicked(object sender, EventArgs e)
-    {
-        await DisplayAlert("Giỏ hàng", "Chức năng giỏ hàng.", "Đóng");
-    }
+    //private async void OnCartClicked(object sender, EventArgs e)
+    //{
+    //    await DisplayAlert("Giỏ hàng", "Chức năng giỏ hàng.", "Đóng");
+    //}
 
-    private async void OnMessageClicked(object sender, EventArgs e)
-    {
-        await DisplayAlert("Tin nhắn", "Chức năng Chat.", "Đóng");
-    }
+    //private async void OnMessageClicked(object sender, EventArgs e)
+    //{
+    //    await DisplayAlert("Tin nhắn", "Chức năng Chat.", "Đóng");
+    //}
 
     private async void OnMenuClicked(object sender, EventArgs e)
     {
