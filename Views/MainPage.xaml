@@ -6,438 +6,592 @@
     xmlns:converters="clr-namespace:BIPhone.Converters"
     NavigationPage.HasNavigationBar="False">
 
-	<ContentPage.Resources>
-		<!-- =============================== -->
-		<!-- MÀU CHUNG -->
-		<!-- =============================== -->
-		<Color x:Key="ShopeeOrange">#EE4D2D</Color>
-		<Color x:Key="LightBackground">#F5F5F5</Color>
-		<Color x:Key="TextDark">#333333</Color>
-		<Color x:Key="TextGray">#777777</Color>
-
-		<!-- =============================== -->
-		<!-- STYLES -->
-		<!-- =============================== -->
-		<Style x:Key="MenuButtonStyle" TargetType="Button">
-			<Setter Property="BackgroundColor" Value="Transparent" />
-			<Setter Property="TextColor" Value="#333333" />
-			<Setter Property="FontSize" Value="11" />
-			<Setter Property="Padding" Value="4" />
-			<Setter Property="Margin" Value="2,0" />
-		</Style>
-
-		<Style x:Key="OrderFilterBtnStyle" TargetType="Button">
-			<Setter Property="BackgroundColor" Value="White" />
-			<Setter Property="TextColor" Value="#555555" />
-			<Setter Property="FontSize" Value="12" />
-			<Setter Property="Padding" Value="14,7" />
-			<Setter Property="Margin" Value="0" />
-			<Setter Property="CornerRadius" Value="4" />
-		</Style>
-        <!-- Định nghĩa hàm StringHasValueConverter để ẩn các label, text không có dữ liệu -->
+    <ContentPage.Resources>
         <ResourceDictionary>
+            <!-- =============================== -->
+            <!-- MÀU CHUNG -->
+            <!-- =============================== -->
+            <Color x:Key="ShopeeOrange">#EE4D2D</Color>
+            <Color x:Key="LightBackground">#F5F5F5</Color>
+            <Color x:Key="TextDark">#333333</Color>
+            <Color x:Key="TextGray">#777777</Color>
+
+            <!-- =============================== -->
+            <!-- STYLES -->
+            <!-- =============================== -->
+            <Style x:Key="MenuButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="TextColor" Value="#333333" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Padding" Value="4" />
+                <Setter Property="Margin" Value="2,0" />
+            </Style>
+
+            <Style x:Key="OrderFilterBtnStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="White" />
+                <Setter Property="TextColor" Value="#555555" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Padding" Value="14,7" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="CornerRadius" Value="4" />
+            </Style>
+
+            <!-- CONVERTERS -->
             <converters:StringToVisibilityConverter x:Key="StringHasValueConverter" />
         </ResourceDictionary>
     </ContentPage.Resources>
 
-	<!-- ========================================================= -->
-	<!-- TOÀN BỘ MAINPAGE -->
-	<!-- ========================================================= -->
-	<Grid RowDefinitions="Auto,Auto,*,50" BackgroundColor="#F5F5F5">
+    <!-- ========================================================= -->
+    <!-- TOÀN BỘ MAINPAGE -->
+    <!-- ========================================================= -->
+    <Grid RowDefinitions="Auto,Auto,*,50" BackgroundColor="#F5F5F5">
+        <Grid   Grid.Row="0"
+                Padding="10,8"
+                BackgroundColor="{StaticResource ShopeeOrange}"
+                HeightRequest="30"                
+                ColumnSpacing="8">
+                <!-- Label duy nhất phủ trọn 1 cell của Grid -->
+                <Label x:Name="lblEventStatus"
+                   Text="Trạng thái hệ thống..."
+                   TextColor="White"
+                   FontSize="13"
+                   FontAttributes="Bold"
+                   Margin="0,-4,0,0"
+                   BackgroundColor="Transparent"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation" />
+        </Grid>
+        <!-- ===================================================== -->
+        <!-- 1. MENU NGANG -->
+        <!-- ===================================================== -->
+        <Border Grid.Row="1"
+        BackgroundColor="{StaticResource ShopeeOrange}"
+        Padding="0"
+        StrokeThickness="0"
+        StrokeShape="Rectangle">
 
-		<!-- ===================================================== -->
-		<!-- 1. HEADER TÌM KIẾM (ĐÃ ĐƯỢC TỐI ƯU GIAO DIỆN) -->
-		<!-- ===================================================== -->
-		<Grid
-            Grid.Row="0"
-            Padding="10,8"
-            BackgroundColor="{StaticResource ShopeeOrange}"
-            ColumnDefinitions="*,Auto,Auto"
-            ColumnSpacing="8">
+            <ScrollView HorizontalScrollBarVisibility="Never" Orientation="Horizontal">
+                <HorizontalStackLayout x:Name="MenuLayout" Padding="12,6" Spacing="12">
 
-			<!-- Ô TÌM KIẾM -->
-			<Border
-                Grid.Column="0"
-                HeightRequest="40"
-                Padding="0"
-                BackgroundColor="White"
-                StrokeThickness="0"
-                StrokeShape="RoundRectangle 8">
-
-				<Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="FillAndExpand">
-					<!-- Icon Tìm kiếm -->
-					<Label
-                        Grid.Column="0"
-                        Margin="10,0,4,0"
-                        FontSize="17"
-                        Text="🔍"
+                    <!-- NẠP THẺ -->
+                    <Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
+                        <!-- 2. Đổi BackgroundColor icon con sang màu sáng (trắng/hồng nhạt) và thêm bán kính bo tròn 22 vào RoundRectangle -->
+                        <Border Grid.Row="0"
+                        BackgroundColor="#FFF2EE"
+                        HeightRequest="44"
+                        WidthRequest="44"
                         HorizontalOptions="Center"
-                        VerticalOptions="FillAndExpand"
-                        VerticalTextAlignment="Center" />
+                        Padding="0"
+                        StrokeShape="RoundRectangle 22"
+                        StrokeThickness="0" 
+                        Margin="0,-4,0,0">
+                            <Label FontSize="22"
+                           HorizontalOptions="Center"
+                           Text="💳"
+                           VerticalOptions="Center" />
+                        </Border>
 
-					<!-- Khung nhập từ khóa -->
-					<Entry
-                        x:Name="txtSearch"
-                        Grid.Column="1"
-                        Margin="4,0"
-                        BackgroundColor="Transparent"
-                        FontSize="14"
-                        Placeholder="Tìm kiếm sản phẩm..."
-                        PlaceholderColor="#888888"
-                        ReturnType="Search"
-                        TextChanged="OnSearchTextChanged"
-                        TextColor="#333333"
-                        VerticalOptions="FillAndExpand"
-                        VerticalTextAlignment="Center" />
+                        <!-- 3. Đổi TextColor sang White để nổi bật trên nền cam -->
+                        <Label Grid.Row="1"
+                       FontSize="11"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,-4,0,2"
+                       Text="Nạp thẻ"
+                       TextColor="White" />
+                    </Grid>
 
-					<!-- Icon Micro (dùng Label + TapGestureRecognizer thay cho Button) -->
-					<Label
-                        Grid.Column="2"
-                        Padding="8,0,10,0"
-                        FontSize="17"
-                        Text="🎤"
-                        TextColor="#666666"
+                    <!-- VOUCHER -->
+                    <Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
+                        <Border Grid.Row="0"
+                        BackgroundColor="#FFF2EE"
+                        HeightRequest="44"
+                        WidthRequest="44"
                         HorizontalOptions="Center"
-                        VerticalOptions="FillAndExpand"
-                        VerticalTextAlignment="Center">
-						<Label.GestureRecognizers>
-							<TapGestureRecognizer Tapped="OnMicroClicked" />
-						</Label.GestureRecognizers>
-					</Label>
-				</Grid>
-			</Border>
+                        Padding="0"
+                        StrokeShape="RoundRectangle 22"
+                        StrokeThickness="0" 
+                        Margin="0,-4,0,0">
+                            <Label FontSize="22"
+                           HorizontalOptions="Center"
+                           Text="🎟️"
+                           VerticalOptions="Center" />
+                        </Border>
 
-			<!-- NÚT GIỎ HÀNG -->
-			<Button
-                Grid.Column="1"
-                WidthRequest="40"
-                HeightRequest="42"
-                BackgroundColor="Transparent"
-                Clicked="OnCartClicked"
-                FontSize="20"
-                Padding="0"
-                Text="🛒"
-                TextColor="White"
-                VerticalOptions="Center" />
+                        <Label Grid.Row="1"
+                       FontSize="11"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,-4,0,2"
+                       Text="Voucher"
+                       TextColor="White" />
+                    </Grid>
 
-			<!-- NÚT CHAT -->
-			<Button
-                Grid.Column="2"
-                WidthRequest="40"
-                HeightRequest="42"
-                BackgroundColor="Transparent"
-                Clicked="OnMessageClicked"
-                FontSize="20"
-                Padding="0"
-                Text="💬"
-                TextColor="White"
-                VerticalOptions="Center" />
-		</Grid>
+                    <!-- THẾ GIỚI -->
+                    <Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
+                        <Border Grid.Row="0"
+                        BackgroundColor="#FFF2EE"
+                        HeightRequest="44"
+                        WidthRequest="44"
+                        HorizontalOptions="Center"
+                        Padding="0"
+                        StrokeShape="RoundRectangle 22"
+                        StrokeThickness="0" 
+                        Margin="0,-4,0,0">
+                            <Label FontSize="22"
+                           HorizontalOptions="Center"
+                           Text="🌎"
+                           VerticalOptions="Center" />
+                        </Border>
 
-		<!-- ===================================================== -->
-		<!-- 2. MENU NGANG -->
-		<!-- ===================================================== -->
-		<Border
-            Grid.Row="1"
-            BackgroundColor="White"
-            Padding="0"
-            StrokeThickness="0">
+                        <Label Grid.Row="1"
+                       FontSize="11"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,-4,0,2"
+                       Text="Thế giới"
+                       TextColor="White" />
+                    </Grid>
 
-			<ScrollView HorizontalScrollBarVisibility="Never" Orientation="Horizontal">
-				<HorizontalStackLayout x:Name="MenuLayout" Padding="12,6" Spacing="12">
+                    <!-- THANH TOÁN -->
+                    <Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
+                        <Border Grid.Row="0"
+                        BackgroundColor="#FFF2EE"
+                        HeightRequest="44"
+                        WidthRequest="44"
+                        HorizontalOptions="Center"
+                        Padding="0"
+                        StrokeShape="RoundRectangle 22"
+                        StrokeThickness="0" 
+                        Margin="0,-4,0,0">
+                            <Label FontSize="22"
+                           HorizontalOptions="Center"
+                           Text="💰"
+                           VerticalOptions="Center" />
+                        </Border>
 
-					<!-- NẠP THẺ -->
-					<Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
-						<Border Grid.Row="0"
-                                BackgroundColor="#FFF2EE"
-                                HeightRequest="44"
-                                WidthRequest="44"
-                                HorizontalOptions="Center"
-                                Padding="0"
-                                StrokeShape="RoundRectangle 22"
-                                StrokeThickness="0" Margin="0,-4,0,0">
-							<Label FontSize="22"
-                                   HorizontalOptions="Center"
-                                   Text="💳"
-                                   VerticalOptions="Center" />
-						</Border>
+                        <Label Grid.Row="1"
+                       FontSize="11"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="TailTruncation"
+                       Margin="0,-4,0,2"
+                       Text="Thanh toán"
+                       TextColor="White" />
+                    </Grid>
 
-						<Label Grid.Row="1"
-                               FontSize="11"
-                               HorizontalTextAlignment="Center"
-                               Margin="0,-4,0,2"
-                               Text="Nạp thẻ"
-                               TextColor="#333333" />
-					</Grid>
+                    <!-- MOM CLUB -->
+                    <Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
+                        <Border Grid.Row="0"
+                        BackgroundColor="#FFF2EE"
+                        HeightRequest="44"
+                        WidthRequest="44"
+                        HorizontalOptions="Center"
+                        Padding="0"
+                        StrokeShape="RoundRectangle 22"
+                        StrokeThickness="0" 
+                        Margin="0,-4,0,0">
+                            <Label FontSize="22"
+                           HorizontalOptions="Center"
+                           Text="👩"
+                           VerticalOptions="Center" />
+                        </Border>
 
-					<!-- VOUCHER -->
-					<Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
-						<Border Grid.Row="0"
-                                BackgroundColor="#FFF2EE"
-                                HeightRequest="44"
-                                WidthRequest="44"
-                                HorizontalOptions="Center"
-                                Padding="0"
-                                StrokeShape="RoundRectangle 22"
-                                StrokeThickness="0" Margin="0,-4,0,0">
-							<Label FontSize="22"
-                                   HorizontalOptions="Center"
-                                   Text="🎟️"
-                                   VerticalOptions="Center" />
-						</Border>
+                        <Label Grid.Row="1"
+                       FontSize="11"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,-4,0,2"
+                       Text="Mom Club"
+                       TextColor="White" />
+                    </Grid>
 
-						<Label Grid.Row="1"
-                               FontSize="11"
-                               HorizontalTextAlignment="Center"
-                               Margin="0,-4,0,2"
-                               Text="Voucher"
-                               TextColor="#333333" />
-					</Grid>
+                    <!-- XEM THÊM -->
+                    <Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
+                        <Border Grid.Row="0"
+                        BackgroundColor="#FFF2EE"
+                        HeightRequest="44"
+                        WidthRequest="44"
+                        HorizontalOptions="Center"
+                        Padding="0"
+                        StrokeShape="RoundRectangle 22"
+                        StrokeThickness="0" 
+                        Margin="0,-4,0,0">
+                            <Label FontSize="20"
+                           HorizontalOptions="Center"
+                           Text="•••"
+                           VerticalOptions="Center" />
+                        </Border>
 
-					<!-- THẾ GIỚI -->
-					<Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
-						<Border Grid.Row="0"
-                                BackgroundColor="#FFF2EE"
-                                HeightRequest="44"
-                                WidthRequest="44"
-                                HorizontalOptions="Center"
-                                Padding="0"
-                                StrokeShape="RoundRectangle 22"
-                                StrokeThickness="0" Margin="0,-4,0,0">
-							<Label FontSize="22"
-                                   HorizontalOptions="Center"
-                                   Text="🌎"
-                                   VerticalOptions="Center" />
-						</Border>
+                        <Label Grid.Row="1"
+                       FontSize="11"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,-4,0,2"
+                       Text="Xem thêm"
+                       TextColor="White" />
+                    </Grid>
 
-						<Label Grid.Row="1"
-                               FontSize="11"
-                               HorizontalTextAlignment="Center"
-                               Margin="0,-4,0,2"
-                               Text="Thế giới"
-                               TextColor="#333333" />
-					</Grid>
+                </HorizontalStackLayout>
+            </ScrollView>
+        </Border>
 
-					<!-- THANH TOÁN -->
-					<Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
-						<Border Grid.Row="0"
-                                BackgroundColor="#FFF2EE"
-                                HeightRequest="44"
-                                WidthRequest="44"
-                                HorizontalOptions="Center"
-                                Padding="0"
-                                StrokeShape="RoundRectangle 22"
-                                StrokeThickness="0" Margin="0,-4,0,0">
-							<Label FontSize="22"
-                                   HorizontalOptions="Center"
-                                   Text="💰"
-                                   VerticalOptions="Center" />
-						</Border>
-
-						<Label Grid.Row="1"
-                               FontSize="11"
-                               HorizontalTextAlignment="Center"
-                               LineBreakMode="TailTruncation"
-                               Margin="0,-4,0,2"
-                               Text="Thanh toán"
-                               TextColor="#333333" />
-					</Grid>
-
-					<!-- MOM CLUB -->
-					<Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
-						<Border Grid.Row="0"
-                                BackgroundColor="#FFF2EE"
-                                HeightRequest="44"
-                                WidthRequest="44"
-                                HorizontalOptions="Center"
-                                Padding="0"
-                                StrokeShape="RoundRectangle 22"
-                                StrokeThickness="0" Margin="0,-4,0,0">
-							<Label FontSize="22"
-                                   HorizontalOptions="Center"
-                                   Text="👩"
-                                   VerticalOptions="Center" />
-						</Border>
-
-						<Label Grid.Row="1"
-                               FontSize="11"
-                               HorizontalTextAlignment="Center"
-                               Margin="0,-4,0,2"
-                               Text="Mom Club"
-                               TextColor="#333333" />
-					</Grid>
-
-					<!-- XEM THÊM -->
-					<Grid RowDefinitions="Auto, Auto" RowSpacing="0" WidthRequest="65">
-						<Border Grid.Row="0"
-                                BackgroundColor="#FFF2EE"
-                                HeightRequest="44"
-                                WidthRequest="44"
-                                HorizontalOptions="Center"
-                                Padding="0"
-                                StrokeShape="RoundRectangle 22"
-                                StrokeThickness="0" Margin="0,-4,0,0">
-							<Label FontSize="20"
-                                   HorizontalOptions="Center"
-                                   Text="•••"
-                                   VerticalOptions="Center" />
-						</Border>
-
-						<Label Grid.Row="1"
-                               FontSize="11"
-                               HorizontalTextAlignment="Center"
-                               Margin="0,-4,0,2"
-                               Text="Xem thêm"
-                               TextColor="#333333" />
-					</Grid>
-
-				</HorizontalStackLayout>
-			</ScrollView>
-		</Border>
-
-		<!-- ===================================================== -->
-		<!-- 3. CONTENT CỦA 6 TAB -->
-		<!-- ===================================================== -->
-		<Grid x:Name="ContentArea" Grid.Row="2">
-            <!-- TAB A - DASHBOARD -->
-            <ScrollView x:Name="DashboardContent"
-                    Grid.Row="2"
-                    IsVisible="False"
-                    Padding="16">
+        <!-- ===================================================== -->
+        <!-- 2. CONTENT CỦA 6 TAB -->
+        <!-- ===================================================== -->
+        <Grid x:Name="GridMainCONTENT" Grid.Row="2">
+            <!-- TAB A - EXECUTIVE DASHBOARD (TRANG CHỦ ĐIỀU HÀNH) -->
+            <ScrollView x:Name="SvDashboard"
+                Grid.Row="2"
+                IsVisible="True"
+                Padding="12,10,12,24">
                 <VerticalStackLayout Spacing="16">
-                    <!-- Thống kê tổng quan -->
-                    <Label Text="TỔNG QUAN BÁO CÁO"
-                       FontAttributes="Bold"
-                       FontSize="16"
-                       TextColor="#222222" />
 
-                    <!-- Grid Card Thống kê -->
-                    <Grid ColumnDefinitions="*, *"
-                      RowDefinitions="Auto, Auto"
-                      ColumnSpacing="12"
-                      RowSpacing="12">
-                        <!-- Card 1: Doanh thu -->
-                        <Border Grid.Row="0" Grid.Column="0"
-                            Padding="12" BackgroundColor="#E3F2FD"
-                            StrokeThickness="0" StrokeShape="RoundRectangle 8">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="Doanh thu" FontSize="12" TextColor="#1565C0" />
-                                <Label x:Name="lblDbRevenue" Text="0 đ" FontAttributes="Bold" FontSize="16" TextColor="#0D47A1" />
-                            </VerticalStackLayout>
-                        </Border>
+                    <!-- 1. HEADER: CHÀO SẾP & LỌC THỜI GIAN -->
+                    <Grid ColumnDefinitions="*, Auto">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Chào Sếp, Chúc một ngày tốt lành! 👋" FontSize="12" TextColor="#64748B" />
+                            <Label Text="Báo cáo Tổng quan" FontAttributes="Bold" FontSize="18" TextColor="#0F172A" />
+                        </VerticalStackLayout>
 
-                        <!-- Card 2: Đơn hàng -->
-                        <Border Grid.Row="0" Grid.Column="1"
-                            Padding="12" BackgroundColor="#E8F5E9"
-                            StrokeThickness="0" StrokeShape="RoundRectangle 8">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="Tổng đơn hàng" FontSize="12" TextColor="#2E7D32" />
-                                <Label x:Name="lblDbOrders" Text="0" FontAttributes="Bold" FontSize="16" TextColor="#1B5E20" />
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <!-- Card 3: Cuộc gọi -->
-                        <Border Grid.Row="1" Grid.Column="0"
-                            Padding="12" BackgroundColor="#FFF3E0"
-                            StrokeThickness="0" StrokeShape="RoundRectangle 8">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="Cuộc gọi" FontSize="12" TextColor="#E65100" />
-                                <Label x:Name="lblDbCalls" Text="0" FontAttributes="Bold" FontSize="16" TextColor="#BF360C" />
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <!-- Card 4: Khách hàng mới -->
-                        <Border Grid.Row="1" Grid.Column="1"
-                            Padding="12" BackgroundColor="#F3E5F5"
-                            StrokeThickness="0" StrokeShape="RoundRectangle 8">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="Khách hàng mới" FontSize="12" TextColor="#7B1FA2" />
-                                <Label x:Name="lblDbCustomers" Text="0" FontAttributes="Bold" FontSize="16" TextColor="#4A148C" />
-                            </VerticalStackLayout>
+                        <!-- Nút chọn thời gian báo cáo -->
+                        <Border Grid.Column="1" BackgroundColor="#F1F5F9" StrokeShape="RoundRectangle 16" Padding="10,6" StrokeThickness="0">
+                            <Label Text="📅 Hôm nay ▾" FontSize="11" FontAttributes="Bold" TextColor="#334155"/>
                         </Border>
                     </Grid>
+
+                    <!-- 2. THẺ HERO: TÌNH HÌNH TÀI CHÍNH & TIẾN ĐỘ CHỈ TIÊU (KPI) -->
+                    <Border BackgroundColor="#0F172A" StrokeShape="RoundRectangle 12" Padding="16,14" StrokeThickness="0">
+                        <VerticalStackLayout Spacing="10">
+                            <Grid ColumnDefinitions="*, Auto">
+                                <Label Text="THU CHỈ KẾT TOÁN (TIỀN MẶT + CỬA HÀNG)" FontSize="11" TextColor="#94A3B8" FontAttributes="Bold"/>
+                                <Label Grid.Column="1" Text="KPI: 85%" FontSize="11" TextColor="#38BDF8" FontAttributes="Bold"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*, *">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="Doanh thu thực" FontSize="11" TextColor="#CBD5E1"/>
+                                    <Label Text="{Binding DoanhThu, FallbackValue='45.200.000đ'}" FontSize="20" FontAttributes="Bold" TextColor="#38BDF8"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="Lợi nhuận gộp (Ước tính)" FontSize="11" TextColor="#CBD5E1"/>
+                                    <Label Text="{Binding LoiNhuan, FallbackValue='14.800.000đ'}" FontSize="20" FontAttributes="Bold" TextColor="#4ADE80"/>
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <!-- Thanh Tiến Độ KPI -->
+                            <ProgressBar Progress="0.85" ProgressColor="#38BDF8" HeightRequest="6"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- 3. PHÊ DUYỆT & NÓNG (Actionable Items - Chủ doanh nghiệp duyệt ngay) -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="CẦN SẾP XỬ LÝ NGAY ⚡" FontSize="12" FontAttributes="Bold" TextColor="#991B1B"/>
+                        <Grid ColumnDefinitions="*, *" ColumnSpacing="10">
+                            <!-- Cảnh báo 1: Duyệt chi -->
+                            <Border Grid.Column="0" BackgroundColor="#FEF2F2" Stroke="#FECACA" StrokeShape="RoundRectangle 8" Padding="10">
+                                <VerticalStackLayout Spacing="4">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <Label Text="Duyệt Phiếu Chi" FontSize="11" TextColor="#991B1B" FontAttributes="Bold"/>
+                                        <Label Grid.Column="1" Text="💸" FontSize="12"/>
+                                    </Grid>
+                                    <Label Text="3 phiếu (12.500K)" FontSize="14" FontAttributes="Bold" TextColor="#7F1D1D"/>
+                                    <Label Text="Chờ phê duyệt >" FontSize="10" TextColor="#DC2626" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Cảnh báo 2: Cuộc gọi nhỡ VIP -->
+                            <Border Grid.Column="1" BackgroundColor="#FFFBEB" Stroke="#FDE68A" StrokeShape="RoundRectangle 8" Padding="10">
+                                <VerticalStackLayout Spacing="4">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <Label Text="Giao dịch Tắc nghẽn" FontSize="11" TextColor="#92400E" FontAttributes="Bold"/>
+                                        <Label Grid.Column="1" Text="⚠️" FontSize="12"/>
+                                    </Grid>
+                                    <Label Text="5 đơn hoãn giao" FontSize="14" FontAttributes="Bold" TextColor="#78350F"/>
+                                    <Label Text="Xem chi tiết >" FontSize="10" TextColor="#D97706" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <!-- 4. LỐI TẮT THAO TÁC NHANH (Quick Actions) -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="THAO TÁC NHANH" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                        <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="8">
+                            <!-- Nút 1: Tạo đơn -->
+                            <Border Grid.Column="0" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 8" Padding="8">
+                                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                                    <Label Text="➕" FontSize="18" HorizontalOptions="Center"/>
+                                    <Label Text="Tạo đơn" FontSize="10" TextColor="#334155" HorizontalOptions="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+                            <!-- Nút 2: Quét mã -->
+                            <Border Grid.Column="1" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 8" Padding="8">
+                                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                                    <Label Text="📷" FontSize="18" HorizontalOptions="Center"/>
+                                    <Label Text="Quét mã" FontSize="10" TextColor="#334155" HorizontalOptions="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+                            <!-- Nút 3: Gọi điện (BIPhone) -->
+                            <Border Grid.Column="2" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 8" Padding="8">
+                                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                                    <Label Text="📞" FontSize="18" HorizontalOptions="Center"/>
+                                    <Label Text="Tổng đài" FontSize="10" TextColor="#334155" HorizontalOptions="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+                            <!-- Nút 4: Sổ nợ -->
+                            <Border Grid.Column="3" BackgroundColor="#F8FAFC" Stroke="#E2E8F0" StrokeShape="RoundRectangle 8" Padding="8">
+                                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                                    <Label Text="📖" FontSize="18" HorizontalOptions="Center"/>
+                                    <Label Text="Sổ nợ" FontSize="10" TextColor="#334155" HorizontalOptions="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <!-- 5. PHÂN TÍCH HIỆU SUẤT VẬN HÀNH (Operation Status) -->
+                    <Border BackgroundColor="White" Stroke="#E2E8F0" StrokeShape="RoundRectangle 10" Padding="12">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="TÌNH HÌNH VẬN HÀNH HÔM NAY" FontSize="12" FontAttributes="Bold" TextColor="#1E293B"/>
+
+                            <Grid ColumnDefinitions="*, *, *" ColumnSpacing="8">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="Đơn thành công" FontSize="10" TextColor="#64748B"/>
+                                    <Label Text="28 / 32" FontSize="15" FontAttributes="Bold" TextColor="#16A34A"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="Cuộc gọi tư vấn" FontSize="10" TextColor="#64748B"/>
+                                    <Label Text="45 cuộc" FontSize="15" FontAttributes="Bold" TextColor="#2563EB"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                    <Label Text="Khách mới" FontSize="10" TextColor="#64748B"/>
+                                    <Label Text="+12 khách" FontSize="15" FontAttributes="Bold" TextColor="#9333EA"/>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- 6. HOẠT ĐỘNG GẦN ĐÂY (Real-time Feed) -->
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Label Text="NHẬT KÝ HOẠT ĐỘNG BÁN HÀNG" FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                            <Label Grid.Column="1" Text="Xem tất cả" FontSize="11" TextColor="#2563EB" FontAttributes="Bold"/>
+                        </Grid>
+
+                        <!-- Item 1 -->
+                        <Border BackgroundColor="White" Stroke="#F1F5F9" StrokeShape="RoundRectangle 6" Padding="10,8">
+                            <Grid ColumnDefinitions="Auto, *, Auto">
+                                <Label Text="🛒" FontSize="14" VerticalOptions="Center" Margin="0,0,8,0"/>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="Đơn hàng #DH1024 - Anh Tuấn" FontSize="12" FontAttributes="Bold" TextColor="#1E293B"/>
+                                    <Label Text="Thanh toán CK • 1.250.000đ" FontSize="10" TextColor="#64748B"/>
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2" Text="2 phút trước" FontSize="10" TextColor="#94A3B8" VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Item 2 -->
+                        <Border BackgroundColor="White" Stroke="#F1F5F9" StrokeShape="RoundRectangle 6" Padding="10,8">
+                            <Grid ColumnDefinitions="Auto, *, Auto">
+                                <Label Text="📞" FontSize="14" VerticalOptions="Center" Margin="0,0,8,0"/>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="Cuộc gọi đến từ 0988.080.***" FontSize="12" FontAttributes="Bold" TextColor="#1E293B"/>
+                                    <Label Text="Thời lượng: 3m 45s • NV Hải" FontSize="10" TextColor="#64748B"/>
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2" Text="15 phút trước" FontSize="10" TextColor="#94A3B8" VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+
                 </VerticalStackLayout>
             </ScrollView>
-            
-            <!-- TAB B - TRANG CHỦ -->
-            <ScrollView x:Name="ProductContent" IsVisible="True">
-				<VerticalStackLayout Padding="8,10,8,20" Spacing="12">
-					<Label FontAttributes="Bold" FontSize="17" Text="GỢI Ý HÔM NAY" TextColor="{StaticResource ShopeeOrange}" />
 
-					<Grid ColumnDefinitions="*,*" ColumnSpacing="6" RowSpacing="8">
+            <!-- TAB B - SẢN PHẨM -->
+            <Grid x:Name="GridSanPham" RowDefinitions="Auto,Auto,*" RowSpacing="10" Padding="10">
 
-						<!-- SẢN PHẨM 1 -->
-						<Border Grid.Column="0" BackgroundColor="White" StrokeShape="RoundRectangle 5" StrokeThickness="0">
-							<VerticalStackLayout Spacing="5">
-								<Border BackgroundColor="#E5E5E5" HeightRequest="150" StrokeShape="RoundRectangle 5" StrokeThickness="0">
-									<Label HorizontalOptions="Center" Text="Sản phẩm" TextColor="#777777" VerticalOptions="Center" />
-								</Border>
-								<Label Margin="6,2" FontSize="13" Text="Sản phẩm mẫu 1" TextColor="#333333" />
-								<Label Margin="6,0,6,8" FontAttributes="Bold" FontSize="15" Text="350.000đ" TextColor="{StaticResource ShopeeOrange}" />
-							</VerticalStackLayout>
-						</Border>
+                <!-- 1. Bổ sung Tổng số sản phẩm và Label Đồng bộ sản phẩm -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                    <StackLayout Grid.Column="0" VerticalOptions="Center">
+                        <Label x:Name="lblTongMatHang"
+						   Text="Tổng SP: 0"
+						   FontSize="15"
+						   FontAttributes="Bold"
+						   TextColor="#333333"
+						   VerticalOptions="Center" />
+                    </StackLayout>
 
-						<!-- SẢN PHẨM 2 -->
-						<Border Grid.Column="1" BackgroundColor="White" StrokeShape="RoundRectangle 5" StrokeThickness="0">
-							<VerticalStackLayout Spacing="5">
-								<Border BackgroundColor="#E5E5E5" HeightRequest="150" StrokeShape="RoundRectangle 5" StrokeThickness="0">
-									<Label HorizontalOptions="Center" Text="Sản phẩm" TextColor="#777777" VerticalOptions="Center" />
-								</Border>
-								<Label Margin="6,2" FontSize="13" Text="Sản phẩm mẫu 2" TextColor="#333333" />
-								<Label Margin="6,0,6,8" FontAttributes="Bold" FontSize="15" Text="180.000đ" TextColor="{StaticResource ShopeeOrange}" />
-							</VerticalStackLayout>
-						</Border>
+                    <Label Grid.Column="1" x:Name="lblDongBoHangHoa"
+						   Text="🔄 Đồng bộ sản phẩm"
+						   FontSize="14"
+						   FontAttributes="Bold"
+						   TextColor="#007AFF"
+						   VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnDongBoHangHoaClicked" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </Grid>
 
-					</Grid>
-				</VerticalStackLayout>
-			</ScrollView>
+                <!-- 2. Thanh tìm kiếm đa năng (Chuyển sang Grid.Row="1") -->
+                <Frame Grid.Row="1"
+					   Padding="5,0"
+					   CornerRadius="12"
+					   BorderColor="#E0E0E0"
+					   HasShadow="True"
+					   BackgroundColor="White">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="2" HeightRequest="46">
 
-			<!-- TAB C - CUỘC GỌI -->
-			<Grid x:Name="CallContent" RowDefinitions="Auto,*" IsVisible="False" Padding="10">
+                        <!-- Ô nhập chữ tìm kiếm -->
+                        <Entry x:Name="txtSearchSanPham"
+						   Grid.Column="0"
+						   Placeholder="Tìm tên, mã, barcode sản phẩm..."
+						   VerticalOptions="Center"
+						   ClearButtonVisibility="WhileEditing"
+						   FontSize="14" />
 
-				<!-- 1. Header: Tổng số khách hàng & Nút Đồng bộ -->
-				<Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10" VerticalOptions="Center">
-					<StackLayout Grid.Column="0" VerticalOptions="Center">
-						<Label Text="TỔNG SỐ KHÁCH HÀNG" FontSize="11" TextColor="#666666" />
-						<Label x:Name="lblTongKhachHang" Text="Tổng KH: 0" FontSize="16" FontAttributes="Bold" TextColor="#EE4D2D" />
-					</StackLayout>
+                        <!-- Micro (Voice to Text) -->
+                        <Button x:Name="btnVoiceSearchSanPham" Grid.Column="1"
+							Text="🎙️"
+							Clicked="OnVoiceToTextClicked"
+							FontSize="18"
+							HeightRequest="36" WidthRequest="36"
+							Padding="0" BackgroundColor="Transparent" />
 
-					<Button Grid.Column="1"
-							Text="Đồng bộ Khách hàng"
-							Clicked="OnDongBoKhachHangClicked"
-							BackgroundColor="#EE4D2D"
-							TextColor="White"
-							FontAttributes="Bold"
+                        <!-- Camera Scan Barcode -->
+                        <Button Grid.Column="2"
+							Text="📷"
+							Clicked="OnScanBarcodeClicked"
+							FontSize="18"
+							HeightRequest="36" WidthRequest="36"
+							Padding="0" BackgroundColor="Transparent" />
+
+                        <!-- Nút Tìm kiếm (Icon Kính lúp) -->
+                        <Button Grid.Column="3"
+							Text="🔍"
+							Clicked="OnTimKiemSanPhamClicked"
+							FontSize="16"
+							BackgroundColor="Transparent"
+							TextColor="#333333"
 							CornerRadius="8"
-							HeightRequest="40"/>
-				</Grid>
+							HeightRequest="32" WidthRequest="36"								
+							Padding="0"/>
+                    </Grid>
+                </Frame>
 
-				<!-- 2. Danh sách Cuộc gọi với tính năng Kéo để làm mới (Pull-to-Refresh) -->
-				<RefreshView Grid.Row="1" x:Name="refViewCalls" Refreshing="OnRefreshingCalls">
-					<CollectionView x:Name="cvCalls" SelectionMode="None">
-						<CollectionView.ItemTemplate>
-							<DataTemplate>
-								<Frame Margin="0,0,0,2" Padding="10,0,0,0" CornerRadius="8" BorderColor="#E0E0E0" HasShadow="False">
-									<Frame.GestureRecognizers>
-										<TapGestureRecognizer Tapped="OnItemCardTapped" />
-									</Frame.GestureRecognizers>
-									<VerticalStackLayout Spacing="0">
+                <!-- 3. Danh sách sản phẩm dạng Card (Chuyển sang Grid.Row="2") -->
+                <RefreshView Grid.Row="2" x:Name="refViewProducts" Refreshing="OnRefreshingProducts">
+                    <CollectionView x:Name="cvProducts" SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Frame Padding="10" CornerRadius="10" BorderColor="#E0E0E0" HasShadow="False" BackgroundColor="White">
+                                    <Grid ColumnDefinitions="90,*" ColumnSpacing="10">
 
-										<!-- Hàng 1: Thời gian, Số điện thoại, Checkbox đã đồng bộ -->
+                                        <!-- Ảnh đại diện -->
+                                        <Border Grid.Column="0" StrokeShape="RoundRectangle 8" StrokeThickness="0" HeightRequest="90" WidthRequest="90">
+                                            <Image Source="{Binding HinhAnh, TargetNullValue='no_image.png'}" Aspect="AspectFill" />
+                                        </Border>
+
+                                        <!-- Thông tin sản phẩm -->
+                                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+
+                                            <!-- Tên sản phẩm -->
+                                            <Label Text="{Binding TenSanPham}" FontAttributes="Bold" FontSize="15" TextColor="#333333" MaxLines="2" LineBreakMode="TailTruncation"/>
+
+                                            <!-- Mã hàng / Barcode -->
+                                            <Label Text="{Binding MaHang, StringFormat='Mã: {0}'}" FontSize="12" TextColor="#666666"/>
+
+                                            <!-- Giá bán, Tồn kho & Nút mua -->
+                                            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" Margin="0,4,0,0">
+                                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                                    <Label Text="{Binding GiaBan, StringFormat='{0:N0} đ'}"
+                                               FontSize="15" FontAttributes="Bold" TextColor="#EE4D2D"/>
+                                                    <Label Text="{Binding TonKho, StringFormat='Tồn kho: {0:N0}'}"
+                                               FontSize="12" FontAttributes="Bold" TextColor="#2E7D32"/>
+                                                </VerticalStackLayout>
+
+                                                <Button Grid.Column="1"
+                                            Text="+ Giỏ hàng"
+                                            Clicked="OnAddToCartClicked"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#E8F5E9"
+                                            TextColor="#2E7D32"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            CornerRadius="6"
+                                            HeightRequest="32"
+                                            Padding="10,0"
+                                            VerticalOptions="End"/>
+                                            </Grid>
+
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+
+                        <!-- Giao diện khi danh sách trống -->
+                        <CollectionView.EmptyView>
+                            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="10" Padding="0,50">
+                                <Label Text="Không tìm thấy sản phẩm nào" TextColor="#888888" HorizontalOptions="Center"/>
+                            </VerticalStackLayout>
+                        </CollectionView.EmptyView>
+
+                    </CollectionView>
+                </RefreshView>
+
+            </Grid>
+
+            <!-- TAB C - CUỘC GỌI -->
+            <Grid x:Name="GridCall" RowDefinitions="Auto,*" IsVisible="False" Padding="10">
+
+                <!-- 1. Header: Tổng số khách hàng & Nút Đồng bộ -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10" VerticalOptions="Center">
+                    <StackLayout Grid.Column="0" VerticalOptions="Center">
+                        <!-- <Label Text="TỔNG SỐ KHÁCH HÀNG" FontSize="11" TextColor="#666666" /> -->
+                        <Label x:Name="lblTongKhachHang"
+							   Text="Tổng KH: 0"
+							   FontSize="16"
+							   FontAttributes="Bold"
+							   TextColor="#EE4D2D"
+							   VerticalOptions="Center" />
+                    </StackLayout>
+
+                    <Label Grid.Column="1" x:Name="lblDongBoKhachHang"
+						   Text="Đồng bộ khách hàng"
+						   FontSize="16"
+						   FontAttributes="Bold"
+						   TextColor="#EE4D2D"
+						   VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnDongBoKhachHangClicked" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </Grid>
+
+                <!-- 2. Danh sách Cuộc gọi với tính năng Kéo để làm mới (Pull-to-Refresh) -->
+                <RefreshView Grid.Row="1" x:Name="refViewCalls" Refreshing="OnRefreshingCalls">
+                    <CollectionView x:Name="cvCalls" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Frame Margin="0,0,0,2" Padding="10,0,0,0" CornerRadius="8" BorderColor="#E0E0E0" HasShadow="False">
+                                    <Frame.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnItemCardTapped" />
+                                    </Frame.GestureRecognizers>
+                                    <VerticalStackLayout Spacing="0">
+
+                                        <!-- Hàng 1: Thời gian, Số điện thoại, Checkbox đã đồng bộ -->
                                         <Grid ColumnDefinitions="Auto,*,Auto">
-											<Label Grid.Column="0" Text="{Binding BatDau}" FontAttributes="Bold" TextColor="#333333" VerticalOptions="Center"/>
-											<Label Grid.Column="1" Text="{Binding DienThoai}" FontAttributes="Bold" TextColor="#007AFF" Margin="15,0,0,0" VerticalOptions="Center"/>
-											<HorizontalStackLayout Grid.Column="2" Spacing="5" VerticalOptions="Center">
-												<Label Text="Đã gửi:" FontSize="12" TextColor="#666666" VerticalOptions="Center"/>
-												<!--<CheckBox IsChecked="{Binding Synced}" IsEnabled="False" VerticalOptions="Center"/>-->
-												<CheckBox IsChecked="{Binding IsSynced}" IsEnabled="False" VerticalOptions="Center"/>
-											</HorizontalStackLayout>
-										</Grid>
+                                            <Label Grid.Column="0" Text="{Binding BatDau}" FontAttributes="Bold" TextColor="#333333" VerticalOptions="Center"/>
+                                            <Label Grid.Column="1" Text="{Binding DienThoai}" FontAttributes="Bold" TextColor="#007AFF" Margin="15,0,0,0" VerticalOptions="Center"/>
+                                            <HorizontalStackLayout Grid.Column="2" Spacing="5" VerticalOptions="Center">
+                                                <Label Text="Đã gửi:" FontSize="12" TextColor="#666666" VerticalOptions="Center"/>
+                                                <!--<CheckBox IsChecked="{Binding Synced}" IsEnabled="False" VerticalOptions="Center"/>-->
+                                                <CheckBox IsChecked="{Binding IsSynced}" IsEnabled="False" VerticalOptions="Center"/>
+                                            </HorizontalStackLayout>
+                                        </Grid>
 
-										<BoxView HeightRequest="1" Color="#EEEEEE" Margin="0,2"/>
+                                        <BoxView HeightRequest="1" Color="#EEEEEE" Margin="0,2"/>
 
-										<!-- Các thông tin Mã, Tên, Địa chỉ, ĐT, Nội dung -->
-										<Grid ColumnDefinitions="80,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
+                                        <!-- Các thông tin Mã, Tên, Địa chỉ, ĐT, Nội dung -->
+                                        <Grid ColumnDefinitions="80,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
                                             <Label Grid.Row="0" Grid.Column="0" Text="Mã KH:" TextColor="#666666" FontSize="15" IsVisible="{Binding DtMa, Converter={StaticResource StringHasValueConverter}}"/>
                                             <Label Grid.Row="0" Grid.Column="1" Text="{Binding DtMa}" FontAttributes="Bold" FontSize="15" IsVisible="{Binding DtMa, Converter={StaticResource StringHasValueConverter}}"/>
 
@@ -452,65 +606,99 @@
 
                                             <Label Grid.Row="4" Grid.Column="0" Text="Nội dung:" TextColor="#666666" FontSize="15" IsVisible="{Binding NoiDung, Converter={StaticResource StringHasValueConverter}}"/>
                                             <Label Grid.Row="4" Grid.Column="1" Text="{Binding NoiDung}" FontSize="15" TextColor="#EE4D2D" IsVisible="{Binding NoiDung, Converter={StaticResource StringHasValueConverter}}"/>
-										</Grid>
+                                        </Grid>
 
-										<!-- 2. Đặt x:Name="gridActionButtons" và ẩn mặc định IsVisible="False" -->
-										<Grid x:Name="gridActionButtons"
+                                        <!-- 2. Đặt x:Name="gridActionButtons" và ẩn mặc định IsVisible="False" -->
+                                        <Grid x:Name="gridActionButtons"
 											  IsVisible="False"
 											  ColumnDefinitions="*,*,*,*"
 											  ColumnSpacing="5"
 											  Margin="0,6,0,0">
-											<Button Grid.Column="0" Text="Gọi&#10;lại" Clicked="OnGoiLaiClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#E1F5FE" TextColor="#0288D1"/>
-											<Button Grid.Column="1" Text="Ghi&#10;chú" Clicked="OnGhiChuClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#FFF9C4" TextColor="#F57F17"/>
-											<Button Grid.Column="2" Text="Bán&#10;hàng" Clicked="OnBanHangClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#E8F5E9" TextColor="#388E3C"/>
-											<Button Grid.Column="3" Text="Nghe&#10;lại" Clicked="OnNgheLaiClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#F3E5F5" TextColor="#7B1FA2"/>
-											<Button Grid.Column="4" Text="Chia&#10;sẻ" Clicked="OnChiaSeClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#F3E5F5" TextColor="#7B1FA2"/>
-										</Grid>
+                                            <Button Grid.Column="0" Text="Gọi&#10;lại" Clicked="OnGoiLaiClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#E1F5FE" TextColor="#0288D1"/>
+                                            <Button Grid.Column="1" Text="Ghi&#10;chú" Clicked="OnGhiChuClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#FFF9C4" TextColor="#F57F17"/>
+                                            <Button Grid.Column="2" Text="Bán&#10;hàng" Clicked="OnBanHangClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#E8F5E9" TextColor="#388E3C"/>
+                                            <Button Grid.Column="3" Text="Nghe&#10;lại" Clicked="OnNgheLaiClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#F3E5F5" TextColor="#7B1FA2"/>
+                                            <Button Grid.Column="4" Text="Chia&#10;sẻ" Clicked="OnChiaSeClicked" CommandParameter="{Binding .}" HeightRequest="38" Padding="0" FontSize="12" LineBreakMode="WordWrap" BackgroundColor="#F3E5F5" TextColor="#7B1FA2"/>
+                                        </Grid>
 
-									</VerticalStackLayout>
-								</Frame>
-							</DataTemplate>
-						</CollectionView.ItemTemplate>
-					</CollectionView>
-				</RefreshView>
-			</Grid>
+                                    </VerticalStackLayout>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </RefreshView>
+            </Grid>
 
-            <!-- TAB ĐƠN HÀNG (ONLINE - TMĐT STYLE) -->
-            <Grid x:Name="CvDonHangListTab" RowDefinitions="Auto, Auto, *, Auto" IsVisible="false">
+            <!-- TAB D - GIAO HÀNG (ONLINE - TMĐT STYLE) -->
+            <Grid x:Name="GridGiaoHang" RowDefinitions="Auto, Auto, *, Auto" IsVisible="false">
 
-                <!-- 1. Thanh Tìm Kiếm & Chọn Ngày (Nhỏ gọn) -->
-                <Grid Grid.Row="0" ColumnDefinitions="*, Auto" ColumnSpacing="8" Padding="10,8,10,4">
-                    <!-- Ô nhập từ khóa -->
-                    <Border Grid.Column="0" Stroke="#CBD5E1" StrokeThickness="1" StrokeShape="RoundRectangle 8" Padding="8,0" BackgroundColor="White">
-                        <SearchBar x:Name="EntrySearchDonHang" 
-                       Placeholder="Tìm mã đơn, tên/SĐT khách..." 
-                       FontSize="13" 
-                       HeightRequest="38" 
-                       BackgroundColor="Transparent"/>
+                <!-- 1. Thanh Tìm Kiếm & Chọn Ngày (Đã sửa viền Border & màu sắc) -->
+                <Grid Grid.Row="0" ColumnDefinitions="*, Auto, Auto, Auto" ColumnSpacing="4" HeightRequest="46" Padding="8,4">
+
+                    <!-- 1. Ô nhập từ khóa tìm kiếm (Đã bọc Border bo góc) -->
+                    <Border Grid.Column="0"
+							Stroke="#CBD5E1"
+							StrokeThickness="1"
+							StrokeShape="RoundRectangle 8"
+							Padding="8,0"
+							BackgroundColor="White"
+							VerticalOptions="Center"
+							HeightRequest="36">
+                        <Entry x:Name="txtSearchGiaoHang"
+							   Placeholder="Tìm mã đơn, tên, SĐT..."
+							   VerticalOptions="Center"
+							   ClearButtonVisibility="WhileEditing"
+							   FontSize="12"
+							   BackgroundColor="Transparent"/>
                     </Border>
 
-                    <!-- Nút chọn khoảng thời gian (DatePicker ẩn gọn) -->
-                    <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-                        <DatePicker x:Name="DpDonHangTuNgay" Format="dd/MM" FontSize="11" TextColor="#1E293B" HeightRequest="36" WidthRequest="62"/>
-                        <Label Text="-" VerticalOptions="Center" TextColor="#64748B" FontSize="12"/>
-                        <DatePicker x:Name="DpDonHangDenNgay" Format="dd/MM" FontSize="11" TextColor="#1E293B" HeightRequest="36" WidthRequest="62"/>
-                    </HorizontalStackLayout>
+                    <!-- 2. DatePicker Từ Ngày -->
+                    <DatePicker x:Name="DpGiaoHangTuNgay"
+								Grid.Column="1"
+								Format="dd/MM"
+								FontSize="11"
+								TextColor="#1E293B"
+								VerticalOptions="Center"
+								HeightRequest="36"
+								WidthRequest="60"/>
+
+                    <!-- 3. DatePicker Đến Ngày -->
+                    <DatePicker x:Name="DpGiaoHangDenNgay"
+								Grid.Column="2"
+								Format="dd/MM"
+								FontSize="11"
+								TextColor="#1E293B"
+								VerticalOptions="Center"
+								HeightRequest="36"
+								WidthRequest="60"/>
+
+                    <!-- 4. Nút Tìm kiếm (Đã sửa TextColor sáng rõ) -->
+                    <Button Grid.Column="3"
+							Text="🔍"
+							Clicked="OnTimKiemGiaoHangClicked"
+							FontSize="16"
+							BackgroundColor="Transparent"
+							TextColor="#1E293B"
+							VerticalOptions="Center"
+							HeightRequest="36"
+							WidthRequest="36"
+							Padding="0"/>
                 </Grid>
 
                 <!-- 2. Thanh Filter Trạng Thái Ngang Vuốt Mượt (Chips Scrollable) -->
                 <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Padding="10,2,10,6">
                     <HorizontalStackLayout Spacing="8">
-                        <Button x:Name="BtnFilterTatCa" Text="Tất cả" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#1E3A8A" TextColor="White"/>
-                        <Button x:Name="BtnFilterChoLay" Text="Chờ lấy hàng" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
-                        <Button x:Name="BtnFilterDangGiao" Text="Đang giao" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
-                        <Button x:Name="BtnFilterDaGiao" Text="Đã giao" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
-                        <Button x:Name="BtnFilterDaHuy" Text="Đã hủy" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
+                        <Button x:Name="BtnFilterTatCa" Text="Tất cả" Clicked="BtnFilterTatCa_Clicked" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#1E3A8A" TextColor="White"/>
+                        <Button x:Name="BtnFilterChoLay" Text="Chờ lấy hàng" Clicked="BtnFilterChoLay_Clicked" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
+                        <Button x:Name="BtnFilterDangGiao" Text="Đang giao" Clicked="BtnFilterDangGiao_Clicked" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
+                        <Button x:Name="BtnFilterDaGiao" Text="Đã giao" Clicked="BtnFilterDaGiao_Clicked" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
+                        <Button x:Name="BtnFilterDaHuy" Text="Đã hủy" Clicked="BtnFilterDaHuy_Clicked" FontSize="12" HeightRequest="32" Padding="14,0" CornerRadius="16" BackgroundColor="#F1F5F9" TextColor="#475569"/>
                     </HorizontalStackLayout>
                 </ScrollView>
 
                 <!-- 3. Danh Sách Đơn Hàng (CollectionView - Đã bỏ Padding) -->
                 <Grid Grid.Row="2" Margin="10,2">
-                    <CollectionView x:Name="GridOrderContent">
+                    <CollectionView x:Name="CvGiaoHangList">
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
                                 <Border Stroke="#E2E8F0" StrokeThickness="1" StrokeShape="RoundRectangle 8" Margin="0,4" Padding="10" BackgroundColor="White">
@@ -526,8 +714,8 @@
 
                                         <!-- Dòng 2: Ảnh sản phẩm đại diện + Tên sản phẩm -->
                                         <Grid ColumnDefinitions="50, *" ColumnSpacing="10">
-                                            <Image Source="{Binding AnhSanPhamDaiDien, TargetNullValue='icon_product_placeholder.png'}" 
-                                       WidthRequest="50" HeightRequest="50" Aspect="AspectFill"/>
+                                            <Image Source="{Binding AnhSanPhamDaiDien, TargetNullValue='icon_product_placeholder.png'}"
+												   WidthRequest="50" HeightRequest="50" Aspect="AspectFill"/>
                                             <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
                                                 <Label Text="{Binding TenSanPhamDaiDien}" FontSize="12" FontAttributes="Bold" TextColor="#1E293B" MaxLines="2" LineBreakMode="TailTruncation"/>
                                                 <Label Text="{Binding MoTaThemSanPham}" FontSize="11" TextColor="#64748B" IsVisible="{Binding HasMoTaThem}"/>
@@ -542,25 +730,25 @@
                                             <Label Grid.Row="0" Grid.Column="1" Text="{Binding DaThuFormatted, StringFormat='Đã thu: {0}'}" FontSize="12" TextColor="#16A34A" FontAttributes="Bold" HorizontalOptions="End"/>
 
                                             <Label Grid.Row="1" Grid.Column="0" Text="{Binding TenNhanVienGiao, StringFormat='NV giao: {0}'}" FontSize="11" TextColor="#475569"/>
-                                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding TenTrangThai, StringFormat='Tình trạng: {0}'}" FontSize="11" TextColor="#2563EB" FontAttributes="Bold" HorizontalOptions="End"/>
+                                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding TenTinhTrang, StringFormat='Tình trạng: {0}'}" FontSize="11" TextColor="#2563EB" FontAttributes="Bold" HorizontalOptions="End"/>
                                         </Grid>
 
                                         <!-- Dòng 4: Các nút chức năng (Dynamic ẩn/hiện) -->
                                         <FlexLayout Wrap="Wrap" JustifyContent="End" AlignItems="Center" Direction="Row" Margin="0,4,0,0">
                                             <Button Text="Tiếp nhận" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#16A34A" TextColor="White" CornerRadius="4"
-                                        IsVisible="{Binding CanTiepNhan}" Clicked="BtnTiepNhan_Clicked"/>
+													IsVisible="{Binding CanTiepNhan}" Clicked="BtnTiepNhan_Clicked"/>
 
                                             <Button Text="Hủy tiếp nhận" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#EA580C" TextColor="White" CornerRadius="4"
-                                        IsVisible="{Binding CanHuyTiepNhan}" Clicked="BtnHuyTiepNhan_Clicked"/>
+													IsVisible="{Binding CanHuyTiepNhan}" Clicked="BtnHuyTiepNhan_Clicked"/>
 
                                             <Button Text="Serial SP" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#0284C7" TextColor="White" CornerRadius="4"
-                                        IsVisible="{Binding CanNhapSerial}" Clicked="BtnSerial_Clicked"/>
+													IsVisible="{Binding CanNhapSerial}" Clicked="BtnSerial_Clicked"/>
 
                                             <Button Text="Đã giao" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#2563EB" TextColor="White" CornerRadius="4"
-                                        IsVisible="{Binding CanDanhDauDaGiao}" Clicked="BtnDaGiao_Clicked"/>
+													IsVisible="{Binding CanDanhDauDaGiao}" Clicked="BtnDaGiao_Clicked"/>
 
                                             <Button Text="Hủy đơn" FontSize="11" HeightRequest="30" Padding="10,0" Margin="2" BackgroundColor="#DC2626" TextColor="White" CornerRadius="4"
-                                        IsVisible="{Binding CanHuyDon}" Clicked="BtnHuyDon_Clicked"/>
+													IsVisible="{Binding CanHuyDon}" Clicked="BtnHuyDon_Clicked"/>
                                         </FlexLayout>
 
                                     </VerticalStackLayout>
@@ -576,130 +764,162 @@
                     </CollectionView>
 
                     <!-- Loading Float phía trên danh sách -->
-                    <ActivityIndicator x:Name="ActDonHangLoading" IsRunning="False" IsVisible="False" Color="#1E3A8A" HeightRequest="30" HorizontalOptions="Center" VerticalOptions="Start" Margin="0,10,0,0"/>
+                    <ActivityIndicator x:Name="ActGiaoHangLoading" IsRunning="False" IsVisible="False" Color="#1E3A8A" HeightRequest="30" HorizontalOptions="Center" VerticalOptions="Start" Margin="0,10,0,0"/>
                 </Grid>
 
-                <!-- 4. Footer Tổng Hợp Cố Định Đáy (Đã sửa Border & StrokeThickness) -->
+                <!-- 4. Footer Tổng Hợp Cố Định Đáy -->
                 <Grid x:Name="GridFooterThongKe" Grid.Row="3" RowDefinitions="Auto, Auto" BackgroundColor="#F8FAFC">
                     <!-- Đường vạch kẻ ngang phía trên Footer -->
                     <BoxView Grid.Row="0" HeightRequest="1" Color="#E2E8F0"/>
 
                     <Grid Grid.Row="1" RowDefinitions="Auto, Auto" ColumnDefinitions="*, *" Padding="12,8">
-                        <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" 
-                   Text="{Binding ThongKeSoLuongFormatted}" 
-                   FontSize="11" TextColor="#475569" LineBreakMode="TailTruncation"/>
+                        <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+							   Text="{Binding ThongKeSoLuongFormatted}"
+							   FontSize="11" TextColor="#475569" LineBreakMode="TailTruncation"/>
 
-                        <Label Grid.Row="1" Grid.Column="0" 
-                   Text="{Binding TongTienHangFormatted, StringFormat='Tổng tiền: {0}'}" 
-                   FontSize="12" FontAttributes="Bold" TextColor="#DC2626"/>
+                        <Label Grid.Row="1" Grid.Column="0"
+							   Text="{Binding TongTienHangFormatted, StringFormat='Tổng tiền: {0}'}"
+							   FontSize="12" FontAttributes="Bold" TextColor="#DC2626"/>
 
-                        <Label Grid.Row="1" Grid.Column="1" 
-                   Text="{Binding TongDaThuFormatted, StringFormat='Tổng thu: {0}'}" 
-                   FontSize="12" FontAttributes="Bold" TextColor="#16A34A" HorizontalOptions="End"/>
+                        <Label Grid.Row="1" Grid.Column="1"
+							   Text="{Binding TongDaThuFormatted, StringFormat='Tổng thu: {0}'}"
+							   FontSize="12" FontAttributes="Bold" TextColor="#16A34A" HorizontalOptions="End"/>
                     </Grid>
                 </Grid>
 
             </Grid>
 
-            <!-- TAB E - CÔNG VIỆC -->
-            <Grid x:Name="TaskContent" RowDefinitions="Auto,*" IsVisible="False" RowSpacing="0" BackgroundColor="#F5F5F5">
+            <!-- TAB E - SERIAL HÀNG HOÁ -->
+            <Grid x:Name="GridSerial" RowDefinitions="Auto, *, Auto" IsVisible="false">
 
-                <!-- 1. Thanh Tab Trạng Thái Công Việc (3 Tab) -->
-                <Grid Grid.Row="0" ColumnDefinitions="*,*,*" BackgroundColor="White" Padding="0,8" Margin="0,0,0,8">
+                <!-- 1. Thanh Tìm Kiếm & Chọn Ngày & Nút Tìm -->
+                <Grid Grid.Row="0" ColumnDefinitions="*, Auto, Auto" ColumnSpacing="6" Padding="10,8,10,4">
 
-                    <!-- Tab 1: Chưa tiếp nhận -->
-                    <VerticalStackLayout Grid.Column="0" HorizontalOptions="Center" Spacing="4">
-                        <Label x:Name="lblTabPending" Text="Chưa tiếp nhận" FontSize="13" FontAttributes="Bold" TextColor="#EE4D2D" HorizontalOptions="Center" />
-                        <BoxView x:Name="lineTabPending" HeightRequest="2" Color="#EE4D2D" HorizontalOptions="Fill" />
-                        <VerticalStackLayout.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnTaskStatusTabClicked" CommandParameter="Pending" />
-                        </VerticalStackLayout.GestureRecognizers>
-                    </VerticalStackLayout>
+                    <!-- Ô nhập từ khóa -->
+                    <Border Grid.Column="0" Stroke="#CBD5E1" StrokeThickness="1" StrokeShape="RoundRectangle 8" Padding="8,0" BackgroundColor="White">
+                        <SearchBar x:Name="EntrySearchSerial" 
+                       Placeholder="Mã đơn, Serial, Tên hàng..." 
+                       FontSize="13" 
+                       HeightRequest="38" 
+                       BackgroundColor="Transparent"/>
+                    </Border>
 
-                    <!-- Tab 2: Đã nhận đang làm -->
-                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="4">
-                        <Label x:Name="lblTabInProgress" Text="Đang làm" FontSize="13" TextColor="#666666" HorizontalOptions="Center" />
-                        <BoxView x:Name="lineTabInProgress" HeightRequest="2" Color="Transparent" HorizontalOptions="Fill" />
-                        <VerticalStackLayout.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnTaskStatusTabClicked" CommandParameter="InProgress" />
-                        </VerticalStackLayout.GestureRecognizers>
-                    </VerticalStackLayout>
+                    <!-- Nút Chọn khoảng ngày -->
+                    <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                        <DatePicker x:Name="DpSerialTuNgay" Format="dd/MM" FontSize="11" TextColor="#1E293B" HeightRequest="36" WidthRequest="58"/>
+                        <Label Text="-" VerticalOptions="Center" TextColor="#64748B" FontSize="12"/>
+                        <DatePicker x:Name="DpSerialDenNgay" Format="dd/MM" FontSize="11" TextColor="#1E293B" HeightRequest="36" WidthRequest="58"/>
+                    </HorizontalStackLayout>
 
-                    <!-- Tab 3: Hoàn thành -->
-                    <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center" Spacing="4">
-                        <Label x:Name="lblTabCompleted" Text="Hoàn thành" FontSize="13" TextColor="#666666" HorizontalOptions="Center" />
-                        <BoxView x:Name="lineTabCompleted" HeightRequest="2" Color="Transparent" HorizontalOptions="Fill" />
-                        <VerticalStackLayout.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnTaskStatusTabClicked" CommandParameter="Completed" />
-                        </VerticalStackLayout.GestureRecognizers>
-                    </VerticalStackLayout>
+                    <!-- Nút TÌM -->
+                    <Button Grid.Column="2" 
+                Text="Tìm" 
+                FontSize="12" 
+                FontAttributes="Bold"
+                HeightRequest="36" 
+                Padding="12,0" 
+                BackgroundColor="#1E3A8A" 
+                TextColor="White" 
+                CornerRadius="6"
+                Clicked="BtnTimKiemSerial_Clicked"/>
                 </Grid>
 
-                <!-- 2. Danh Sách Bài Báo / Công Việc (CollectionView) -->
-                <RefreshView Grid.Row="1" x:Name="refreshTasks" Refreshing="OnRefreshTasks">
-                    <CollectionView x:Name="cvTasks" SelectionMode="None">
-                        <CollectionView.EmptyView>
-                            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10" Padding="20">
-                                <Label Text="📄" FontSize="40" HorizontalOptions="Center" />
-                                <Label Text="Không có công việc nào trong mục này" FontSize="14" TextColor="#888888" HorizontalOptions="Center" />
-                            </VerticalStackLayout>
-                        </CollectionView.EmptyView>
-
+                <!-- 2. Danh Sách Serial / Đơn Hàng (CollectionView) -->
+                <Grid Grid.Row="1" Margin="10,2">
+                    <CollectionView x:Name="CvSerialList" 
+                        SelectionMode="Single"
+                        SelectionChanged="CvSerialList_SelectionChanged">
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="10,0,10,10" Padding="12" BackgroundColor="White" Stroke="#E0E0E0" StrokeThickness="1">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="8" />
-                                    </Border.StrokeShape>
+                                <Border Stroke="#E2E8F0" StrokeThickness="1" StrokeShape="RoundRectangle 8" Margin="0,4" Padding="10" BackgroundColor="White">
+                                    <VerticalStackLayout Spacing="6">
 
-                                    <VerticalStackLayout Spacing="10">
-                                        <!-- Khối Nội dung Báo chí (Bấm vào để ẩn/hiện Nút hành động) -->
-                                        <Grid ColumnDefinitions="100,*" ColumnSpacing="12">
-                                            <Grid.GestureRecognizers>
-                                                <TapGestureRecognizer Tapped="OnTaskArticleTapped" CommandParameter="{Binding .}" />
-                                            </Grid.GestureRecognizers>
-
-                                            <!-- Ảnh đại diện (Trái) -->
-                                            <Border Grid.Column="0" HeightRequest="75" WidthRequest="100" StrokeShape="RoundRectangle 6" StrokeThickness="0">
-                                                <Image Source="{Binding ImageUrl}" Aspect="AspectFill" VerticalOptions="Fill" HorizontalOptions="Fill" />
-                                            </Border>
-
-                                            <!-- Tiêu đề + Tóm tắt (Phải) -->
-                                            <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Start">
-                                                <Label Text="{Binding Title}" FontSize="14" FontAttributes="Bold" TextColor="#222222" MaxLines="2" LineBreakMode="TailTruncation" />
-                                                <Label Text="{Binding Summary}" FontSize="12" TextColor="#666666" MaxLines="2" LineBreakMode="TailTruncation" />
-                                            </VerticalStackLayout>
+                                        <!-- Dòng 1: Mã đơn & Ngày lập phiếu -->
+                                        <Grid ColumnDefinitions="*, Auto">
+                                            <HorizontalStackLayout Spacing="4">
+                                                <Label Text="Đơn:" FontAttributes="Bold" TextColor="#64748B" FontSize="12"/>
+                                                <Label Text="{Binding CtSo}" FontAttributes="Bold" TextColor="#1E3A8A" FontSize="13"/>
+                                            </HorizontalStackLayout>
+                                            <Label Grid.Column="1" Text="{Binding NgayLapFormatted}" FontSize="11" TextColor="#64748B" HorizontalOptions="End"/>
                                         </Grid>
 
-                                        <!-- Khối 3 Nút Hành Động (Chỉ hiện khi Bài viết được chọn) -->
-                                        <VerticalStackLayout IsVisible="{Binding IsSelected}" Spacing="8" Margin="0,5,0,0">
-                                            <BoxView HeightRequest="1" Color="#F0F0F0" HorizontalOptions="Fill" />
+                                        <BoxView HeightRequest="1" Color="#F1F5F9"/>
 
-                                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                                                <!-- Nút Tiếp nhận (Chỉ hiện ở Tab Chưa tiếp nhận) -->
-                                                <Button Grid.Column="0" Text="Tiếp nhận" FontSize="11" HeightRequest="36" Padding="0"
-                                            BackgroundColor="#EE4D2D" TextColor="White" CornerRadius="4"
-                                            IsVisible="{Binding IsPending}"
-                                            Clicked="OnAcceptTaskClicked" CommandParameter="{Binding .}" />
+                                        <!-- Dòng 2: Thông tin Hàng hóa -->
+                                        <VerticalStackLayout Spacing="2">
+                                            <HorizontalStackLayout Spacing="6">
+                                                <Label Text="{Binding HhMa, StringFormat='[{0}]'}" FontAttributes="Bold" TextColor="#EA580C" FontSize="12"/>
+                                                <Label Text="{Binding HhTen}" FontSize="12" FontAttributes="Bold" TextColor="#1E293B" LineBreakMode="TailTruncation"/>
+                                            </HorizontalStackLayout>
 
-                                                <!-- Nút Hủy tiếp nhận -->
-                                                <Button Grid.Column="1" Text="Hủy tiếp nhận" FontSize="11" HeightRequest="36" Padding="0"
-                                            BackgroundColor="#FFF0F0" TextColor="#D32F2F" BorderColor="#D32F2F" BorderWidth="1" CornerRadius="4"
-                                            IsVisible="{Binding IsNotCompleted}"
-                                            Clicked="OnRejectTaskClicked" CommandParameter="{Binding .}" />
-
-                                                <!-- Nút Báo cáo -->
-                                                <Button Grid.Column="2" Text="Báo cáo" FontSize="11" HeightRequest="36" Padding="0"
-                                            BackgroundColor="#007AFF" TextColor="White" CornerRadius="4"
-                                            Clicked="OnReportTaskClicked" CommandParameter="{Binding .}" />
-                                            </Grid>
+                                            <Label Text="{Binding NhanVienDisplay}" FontSize="11" TextColor="#64748B"/>
                                         </VerticalStackLayout>
+
+                                        <!-- Dòng 3: Hiển thị Số Serial (Màu tự động điều chỉnh qua Model) -->
+                                        <Grid ColumnDefinitions="Auto, *" Margin="0,2">
+                                            <Label Text="Serial/IMEI: " FontSize="12" FontAttributes="Bold" TextColor="#475569"/>
+                                            <Label Grid.Column="1" 
+                                       Text="{Binding SerialTextDisplay}" 
+                                       FontSize="12" 
+                                       FontAttributes="Bold" 
+                                       TextColor="{Binding SerialColorDisplay}"/>
+                                        </Grid>
+
+                                        <!-- Dòng 4: Vùng Nút bấm Thao tác -->
+                                        <StackLayout IsVisible="{Binding IsActionVisible}">
+                                            <BoxView HeightRequest="1" Color="#E2E8F0" Margin="0,4"/>
+                                            <HorizontalStackLayout HorizontalOptions="End" Spacing="8">
+                                                <Button Text="Nhập Serial" 
+                                            FontSize="11" 
+                                            HeightRequest="32" 
+                                            Padding="12,0" 
+                                            BackgroundColor="#2563EB" 
+                                            TextColor="White" 
+                                            CornerRadius="4"
+                                            Clicked="BtnNhapSerial_Clicked"/>
+
+                                                <Button Text="In Serial" 
+                                            FontSize="11" 
+                                            HeightRequest="32" 
+                                            Padding="12,0" 
+                                            BackgroundColor="#0D9488" 
+                                            TextColor="White" 
+                                            CornerRadius="4"
+                                            Clicked="BtnInSerial_Clicked"/>
+                                            </HorizontalStackLayout>
+                                        </StackLayout>
+
                                     </VerticalStackLayout>
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
+
+                        <CollectionView.EmptyView>
+                            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Margin="0,40">
+                                <Label Text="Không tìm thấy đơn hàng / Serial nào" TextColor="#94A3B8" FontSize="13"/>
+                            </VerticalStackLayout>
+                        </CollectionView.EmptyView>
                     </CollectionView>
-                </RefreshView>
+
+                    <!-- Indicator Loading -->
+                    <ActivityIndicator x:Name="ActSerialLoading" IsRunning="False" IsVisible="False" Color="#1E3A8A" HeightRequest="30" HorizontalOptions="Center" VerticalOptions="Start" Margin="0,10,0,0"/>
+                </Grid>
+
+                <!-- 3. Footer Thống kê -->
+                <ContentView x:Name="CvFooterThongKeSerial" Grid.Row="2" BackgroundColor="#F8FAFC">
+                    <VerticalStackLayout>
+                        <BoxView HeightRequest="1" Color="#E2E8F0"/>
+                        <Grid Padding="12,10">
+                            <Label Text="{Binding ThongKeSoLuongSrFormatted}" 
+                       FontSize="12" 
+                       FontAttributes="Bold" 
+                       TextColor="#1E3A8A" 
+                       HorizontalOptions="Center" 
+                       LineBreakMode="TailTruncation"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </ContentView>
+
             </Grid>
 
             <!-- TAB F - TÀI KHOẢN -->
@@ -1067,12 +1287,12 @@
                         <TapGestureRecognizer Tapped="OnTabOrderClicked" />
                     </Grid.GestureRecognizers>
                 </Grid>
-                <!-- TAB 5 - CÔNG VIỆC -->
+                <!-- TAB 5 - SERIAL HÀNG HOÁ -->
                 <Grid x:Name="tabTask" Grid.Column="4" RowDefinitions="Auto,Auto" RowSpacing="0">
                     <Label x:Name="lblIconTask" Grid.Row="0" FontFamily="MaterialIcons" FontSize="21" HorizontalOptions="Center" Text="&#xe8f9;" TextColor="#888888" />
                     <Label x:Name="lblTextTask" Grid.Row="1" FontSize="11" HorizontalTextAlignment="Center" Text="Công việc" TextColor="#888888" />
                     <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnTabTaskClicked" />
+                        <TapGestureRecognizer Tapped="OnTabSerialClicked" />
                     </Grid.GestureRecognizers>
                 </Grid>
                 <!-- TAB 6 - TÀI KHOẢN -->
